@@ -17,6 +17,7 @@ Require Import LibUtils.
 
 Require Import Coq.Lists.List.
 
+
 Inductive avar : Set :=
 | avar_b : nat -> avar
 | avar_f : var -> avar.
@@ -32,13 +33,13 @@ Inductive typ : Set :=
 | typ_bot : typ
 | typ_sel : avar -> typ_label -> typ
 | typ_all : typ -> typ -> typ
-| typ_obj : nlist dec -> typ
+| typ_obj : list (label * dec) -> typ
 with
 dec : Set :=
 (** dec_typ X A B ::= X : A .. B *)
-| dec_typ : typ_label -> typ -> typ -> dec
+| dec_typ : typ -> typ -> dec
 (** dec_trm x T ::= x : T *)
-| dec_trm : trm_label -> typ -> dec.
+| dec_trm : typ -> dec.
 
 Hint Constructors typ dec : alg_def.
 
@@ -47,23 +48,21 @@ Notation "⊥" := typ_bot.
 Notation "x ⋅ T" := (typ_sel x T) (at level 40).
 Notation "all( A ) B" := (typ_all A B) (at level 40).
 
-Notation "X ∈ A ⋯ B" := (dec_typ X A B) (at level 40).
-Notation "x ∷ T" := (dec_trm x T) (at level 40).
+Notation "X ∈ A ⋯ B" := (X, dec_typ A B) (at level 40).
+Notation "x ∷ T" := (x, dec_trm T) (at level 40).
 Notation "μ{ ds }" := (typ_obj ds) (at level 40).
 
 (* Parameter X : nat. *)
 (* Parameter Y : nat. *)
-(* Check μ{ <| X ∷ ⊥ ;; Y ∈ ⊥ ⋯ ⊤ |> }. *)
+(* Check μ{ <[ label_trm X ∷ ⊥ ; label_typ Y ∈ ⊥ ⋯ ⊤ ]> }. *)
 
-Instance dec_has_label : HasLabel dec :=
-  {
-    get_label d :=
-        match d with
-        | l ∈ _ ⋯ _ => l
-        | l ∷ _ => l
-        end;
-  }.
+Inductive wf_lab_dec : label * dec -> Prop :=
+| wf_ld_typ : forall X A B, wf_lab_dec (label_typ X ∈ A ⋯ B)
+| wf_ld_trm : forall x T, wf_lab_dec (label_trm x ∷ T).
+Hint Constructors wf_lab_dec : alg_def.
 
+Definition wf_decs l := not_empty l /\ list_pred wf_lab_dec l.
+Hint Unfold wf_decs.
 
 Inductive trm : Set :=
 | trm_var : avar -> trm
@@ -73,33 +72,31 @@ Inductive trm : Set :=
 | trm_let : trm -> trm -> trm
 with
 val : Set :=
-| val_new : nlist dec -> nlist def -> val
+| val_new : list (label * dec) -> list (label * def) -> val
 | val_lambda : typ -> trm -> val
 with
 def : Set :=
-| def_typ : typ_label -> typ -> def
-| def_trm : trm_label -> trm -> def.
+| def_typ : typ -> def
+| def_trm : trm -> def.
 
 Hint Constructors trm val def : alg_def.
 
 Notation "'lett' x 'inn' y" := (trm_let x y) (at level 40).
 
-Notation "A ≡ B" := (def_typ A B) (at level 40).
-Notation "x ⩴ t" := (def_trm x t) (at level 40).
+Notation "A ≡ B" := (A, def_typ B) (at level 40).
+Notation "x ⩴ t" := (x, def_trm t) (at level 40).
 
 Notation "ν( ds ){ dfs }" := (val_new ds dfs) (at level 40).
 
 Notation "λ( T ){ t }" := (val_lambda T t) (at level 40).
 
-Instance def_has_label : HasLabel def :=
-  {
-    get_label d :=
-        match d with
-        | l ≡ _ => l
-        | l ⩴ _ => l
-        end;
-  }.
+Inductive wf_lab_def : label * def -> Prop :=
+| wf_lf_typ : forall A B, wf_lab_def (label_typ A ≡ B)
+| wf_lf_trm : forall x t, wf_lab_def (label_trm x ⩴ t).
+Hint Constructors wf_lab_def : alg_def.
 
+Definition wf_defs l := LabelAssocList.uniq l /\ not_empty l /\ list_pred wf_lab_def l.
+Hint Unfold wf_defs.
 
 Definition open_rec_avar (k : nat) (u : var) (a : avar) : avar :=
   match a with
@@ -114,18 +111,19 @@ Fixpoint open_rec_typ (k : nat) (u : var) (T : typ) : typ :=
   | x ⋅ T => (open_rec_avar k u x) ⋅ T
   | all( T ) U => all( open_rec_typ k u T ) open_rec_typ (S k) u U
   | μ{ ds } =>
-    let decs_rec := fix decs_rec (DS : nlist dec) : nlist dec :=
+    let decs_rec := fix decs_rec (DS : list (label * dec)) : list (label * dec) :=
                     match DS with
-                    | <| D |> => <| open_rec_dec (S k) u D |>
-                    | mult D DS' => mult (open_rec_dec (S k) u D) $ decs_rec DS'
+                    | nil => nil
+                    | (l, D) :: DS' =>
+                      (l, (open_rec_dec (S k) u D)) :: decs_rec DS'
                     end
     in μ{ decs_rec ds }
   end
 with
 open_rec_dec (k : nat) (u : var) (D : dec) : dec :=
   match D with
-  | L ∈ T ⋯ U => L ∈ open_rec_typ k u T ⋯ open_rec_typ k u U
-  | m ∷ T => m ∷ open_rec_typ k u T
+  | dec_typ T U => dec_typ (open_rec_typ k u T) $ open_rec_typ k u U
+  | dec_trm T => dec_trm $ open_rec_typ k u T
   end.
 
 
@@ -142,18 +140,21 @@ open_rec_val (k : nat) (u : var) (v : val) : val :=
   match v with
   | λ( T ){ e } => λ( open_rec_typ k u T ){ open_rec_trm (S k) u e }
   | ν( DS ){ dfs } =>
-    let defs_rec := fix defs_rec (dfs : nlist def) : nlist def :=
+    let defs_rec := fix defs_rec (dfs : list (label * def)) : list (label * def) :=
                     match dfs with
-                    | <| df |> => <| open_rec_def (S k) u df |>
-                    | mult df dfs => mult (open_rec_def (S k) u df) $ defs_rec dfs
+                    | nil => nil
+                    | (l, df) :: dfs =>
+                      (l, open_rec_def (S k) u df) :: defs_rec dfs
                     end
-    in ν( nlistOps.map (open_rec_dec (S k) u) DS ){ defs_rec dfs }
+    in ν( LabelAssocList.map (fun d : dec =>
+                          open_rec_dec (S k) u d) DS ){
+          defs_rec dfs }
   end
 with
 open_rec_def (k : nat) (u : var) (d : def) : def :=
   match d with
-  | L ≡ T => L ≡ open_rec_typ k u T
-  | m ⩴ e => m ⩴ open_rec_trm k u e
+  | def_typ T => def_typ $ open_rec_typ k u T
+  | def_trm e => def_trm $ open_rec_trm k u e
   end.
 
 Notation open_avar := (open_rec_avar 0).
@@ -176,18 +177,18 @@ Fixpoint fv_typ (T : typ) : atoms :=
   | x ⋅ T => fv_avar x
   | all( T ) U => fv_typ T `union` fv_typ U
   | μ{ ds } =>
-    let decs_rec := fix decs_rec (DS : nlist dec) : atoms :=
+    let decs_rec := fix decs_rec (DS : list (label * dec)) : atoms :=
                     match DS with
-                    | <| D |> => fv_dec D
-                    | mult D DS' => fv_dec D `union` decs_rec DS'
+                    | nil => {}
+                    | (_, D) :: DS' => fv_dec D `union` decs_rec DS'
                     end
     in decs_rec ds
   end
 with
 fv_dec (D : dec) : atoms :=
   match D with
-  | L ∈ T ⋯ U => fv_typ T `union` fv_typ U
-  | m ∷ T => fv_typ T
+  | dec_typ T U => fv_typ T `union` fv_typ U
+  | dec_trm T => fv_typ T
   end.
 
 
@@ -204,18 +205,20 @@ fv_val (v : val) : atoms :=
   match v with
   | λ( T ){ e } => fv_typ T `union` fv_trm e
   | ν( DS ){ dfs } =>
-    let defs_rec := fix defs_rec (dfs : nlist def) : atoms :=
+    let defs_rec := fix defs_rec (dfs : list (label * def)) : atoms :=
                     match dfs with
-                    | <| df |> => fv_def df
-                    | mult df dfs => fv_def df `union` defs_rec dfs
+                    | nil => {}
+                    | (_, df) :: dfs => fv_def df `union` defs_rec dfs
                     end
-    in fold_left AtomSetImpl.union (map fv_dec DS) {} `union` defs_rec dfs
+    in fold_left AtomSetImpl.union
+                 (map (fun t : (label * dec) => let (_, d) := t in fv_dec d) DS)
+                 {} `union` defs_rec dfs
   end
 with
 fv_def (d : def) : atoms :=
   match d with
-  | L ≡ T => fv_typ T
-  | m ⩴ e => fv_trm e
+  | def_typ T => fv_typ T
+  | def_trm e => fv_trm e
   end.
 
 
@@ -241,11 +244,10 @@ Inductive ty_trm : env -> trm -> typ -> Prop :=
 | ty_obj_intro : forall L G ds DS,
     (forall x, x `notin` L ->
           x ~ open_typ x (μ{ DS }) ++ G ⊩[ ds ⦂ DS ]) ->
-    LabelAssocList.uniq (to_label_assoc ds) ->
+    wf_defs ds ->
     G ⊢ trm_val (ν( DS ){ ds }) ⦂ μ{ DS }
 | typ_obj_elim : forall G x DS a T,
-    G ⊢ trm_var x ⦂ μ{ DS } ->
-    led_by (a ∷ T) DS ->
+    G ⊢ trm_var x ⦂ μ{ label_trm a ∷ T :: DS } ->
     G ⊢ trm_sel x a ⦂ T
 | ty_let : forall L G t u T U,
     G ⊢ t ⦂ T ->
@@ -258,22 +260,22 @@ Inductive ty_trm : env -> trm -> typ -> Prop :=
     G ⊢ t ⦂ U
 where "G ⊢ t ⦂ T" := (ty_trm G t T) : type_scope
 with
-ty_def : env -> def -> dec -> Prop :=
+ty_def : env -> label * def -> label * dec -> Prop :=
 | ty_def_typ : forall G A T,
-    G ⊩ A ≡ T ⦂ A ∈ T ⋯ T
+    G ⊩ label_typ A ≡ T ⦂ label_typ A ∈ T ⋯ T
 | ty_def_trm : forall G a t T,
     G ⊢ t ⦂ T ->
-    G ⊩ a ⩴ t ⦂ a ∷ T
+    G ⊩ label_trm a ⩴ t ⦂ label_trm a ∷ T
 where "G ⊩ d ⦂ D" := (ty_def G d D) : type_scope
 with
-ty_defs : env -> nlist def -> nlist dec -> Prop :=
+ty_defs : env -> list (label * def) -> list (label * dec) -> Prop :=
 | ty_defs_single : forall G d D,
     G ⊩ d ⦂ D ->
-    G ⊩[ single d ⦂ single D ]
+    G ⊩[ d :: nil ⦂ D :: nil ]
 | ty_defs_mult : forall G d D ds DS,
     G ⊩ d ⦂ D ->
     G ⊩[ ds ⦂ DS ] ->
-    G ⊩[ mult d ds ⦂ mult D DS ]
+    G ⊩[ d :: ds ⦂ D :: DS ]
 where "G ⊩[ ds ⦂ DS ]" := (ty_defs G ds DS) : type_scope
 with
 subtyp : env -> typ -> typ -> Prop :=
@@ -292,45 +294,36 @@ subtyp : env -> typ -> typ -> Prop :=
     (forall x, x \notin L ->
        x ~ S2 ++ G ⊢ open_typ x T1 <⦂ open_typ x T2) ->
     G ⊢ typ_all S1 T1 <⦂ typ_all S2 T2
-(* | subtyp_fld : forall G L a T DS U, *)
-(*     (forall x, x `notin` L -> *)
-(*           x ~ open_typ x (μ{ DS }) ++ G ⊢ T <⦂ U) -> *)
-(*     binds_dec_trm a T DS -> *)
-(*     G ⊢ μ{ DS } <⦂ μ{ DS } (* DS[a := U] *) *)
-(* | subtyp_typ : forall G L A DS S1 T1 S2 T2, *)
-(*     (forall x, x `notin` L -> *)
-(*           x ~ open_typ x (μ{ DS }) ++ G ⊢ S2 <⦂ S1) -> *)
-(*     (forall y, y `notin` L -> *)
-(*           y ~ open_typ y (μ{ DS }) ++ G ⊢ T1 <⦂ T2) -> *)
-(*     binds_dec_typ A S1 T1 DS -> *)
-(*     G ⊢ μ{ DS } <⦂ μ{ DS } (* DS[A := S2 .. T2] *) *)
 | subtyp_fld : forall G L a T DS U,
     (forall x, x `notin` L ->
-          x ~ open_typ x (μ{ DS }) ++ G ⊢ T <⦂ U) ->
-    led_by (a ∷ T) DS ->
-    G ⊢ μ{ DS } <⦂ μ{ replace_head (a ∷ U) DS } (* DS[a := U] *)
+          x ~ open_typ x (μ{ a ∷ T :: DS }) ++ G ⊢ T <⦂ U) ->
+    G ⊢ μ{ a ∷ T :: DS } <⦂ μ{ a ∷ U :: DS } (* DS[a := U] *)
 | subtyp_typ : forall G L A DS S1 T1 S2 T2,
     (forall x, x `notin` L ->
-          x ~ open_typ x (μ{ DS }) ++ G ⊢ S2 <⦂ S1) ->
+          x ~ open_typ x (μ{ A ∈ S1 ⋯ T1 :: DS }) ++ G ⊢ S2 <⦂ S1) ->
     (forall y, y `notin` L ->
-          y ~ open_typ y (μ{ DS }) ++ G ⊢ T1 <⦂ T2) ->
-    led_by (A ∈ S1 ⋯ T1) DS ->
-    G ⊢ μ{ DS } <⦂ μ{ replace_head (A ∈ S2 ⋯ T2) DS } (* DS[A := S2 .. T2] *)
+          y ~ open_typ y (μ{ A ∈ S1 ⋯ T1 :: DS }) ++ G ⊢ T1 <⦂ T2) ->
+    G ⊢ μ{ A ∈ S1 ⋯ T1 :: DS } <⦂ μ{ A ∈ S2 ⋯ T2 :: DS } (* DS[A := S2 .. T2] *)
 | subtyp_drop1 : forall G DS1 DS2,
-    G ⊢ μ{ DS1 +++ DS2 } <⦂ μ{ DS2 }
+    not_empty DS1 ->
+    not_empty DS2 ->
+    G ⊢ μ{ DS1 ++ DS2 } <⦂ μ{ DS2 }
 | subtyp_drop2 : forall G DS1 DS2,
-    G ⊢ μ{ DS1 +++ DS2 } <⦂ μ{ DS1 }
+    not_empty DS1 ->
+    not_empty DS2 ->
+    G ⊢ μ{ DS1 ++ DS2 } <⦂ μ{ DS1 }
 | subtyp_merge : forall G DS DS1 DS2,
+    not_empty DS ->
+    not_empty DS1 ->
+    not_empty DS2 ->
     G ⊢ μ{ DS } <⦂ μ{ DS1 } ->
     G ⊢ μ{ DS } <⦂ μ{ DS2 } ->
-    G ⊢ μ{ DS } <⦂ μ{ DS1 +++ DS2 }
+    G ⊢ μ{ DS } <⦂ μ{ DS1 ++ DS2 }
 | subtyp_sel1 : forall G x A DS S T,
-    G ⊢ trm_var x ⦂ μ{ DS } ->
-    led_by (A ∈ S ⋯ T) DS ->
+    G ⊢ trm_var x ⦂ μ{ label_typ A ∈ S ⋯ T :: DS } ->
     G ⊢ typ_sel x A <⦂ T
 | subtyp_sel2 : forall G x A DS S T,
-    G ⊢ trm_var x ⦂ μ{ DS } ->
-    led_by (A ∈ S ⋯ T) DS ->
+    G ⊢ trm_var x ⦂ μ{ label_typ A ∈ S ⋯ T :: DS } ->
     G ⊢ S <⦂ typ_sel x A
 where "G ⊢ T <⦂ U" := (subtyp G T U) : type_scope.
     

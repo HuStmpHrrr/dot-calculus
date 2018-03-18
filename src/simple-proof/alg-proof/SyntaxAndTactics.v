@@ -1,6 +1,8 @@
 Require Import Metalib.Metatheory.
 
-Notation "f $ x" := (f x) (at level 69, right associativity, only parsing).
+Notation "f $ x" := (f x) (at level 68, right associativity, only parsing).
+
+Notation "<[ e1 ; .. ; en ]>" := (cons e1 .. (cons en nil) .. ) (at level 39).
 
 Tactic Notation "gen" ident(x) := generalize dependent x.
 Tactic Notation "gen" ident(x) ident(y) := gen x; gen y.
