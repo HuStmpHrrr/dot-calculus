@@ -21,6 +21,24 @@ Inductive nlist (A : Type) : Type :=
 | mult (_ : A) (_ : nlist A).
 Hint Constructors nlist : alg_def.
 
+Notation "<| d |>" := (single d) (at level 39).
+
+Notation "<| d ; .. ; dn ;; dnn |>" :=
+  (mult d .. (mult dn (single dnn)) ..) (at level 39).
+
+
+Definition led_by {A : Type} (a : A) (nl : nlist A) : Prop :=
+  match nl with
+  | single x => x = a
+  | mult x _ => x = a
+  end.
+
+Definition replace_head {A : Type} (a : A) (nl : nlist A) : nlist A :=
+  match nl with
+  | single _ => single a
+  | mult _ xs => mult a xs
+  end.
+
 Fixpoint nlist_to_list {A : Type} (l : nlist A) : list A :=
   match l with
   | single x => x :: nil
@@ -78,25 +96,40 @@ Proof.
   - unfold nlist_to_list in H.  eauto.
 Qed.
 
+Module nlistOps.
+  Fixpoint map {A B : Type} (f : A -> B) (l : nlist A) : nlist B :=
+    match l with
+    | <| x |> => <| f x |>
+    | mult x xs => mult (f x) $ map f xs
+    end.
 
-Inductive avar : Set :=
-| avar_b : nat -> avar
-| avar_f : var -> avar.
+  Fixpoint app {A : Type} (l1 l2 : nlist A) : nlist A :=
+    match l1 with
+    | single x => mult x l2
+    | mult x xs => mult x $ app xs l2
+    end.
+  
+  Theorem app_assoc : forall {A} (l1 l2 l3 : nlist A),
+      app l1 (app l2 l3) = app (app l1 l2) l3.
+  Proof.
+    intros A l1.
+    induction l1; intros; simpl in *; try f_equal; auto.
+  Qed.
+End nlistOps.
 
-Hint Constructors avar : alg_def.
+Notation "l1 +++ l2" := (nlistOps.app l1 l2) (at level 60, right associativity).
 
-Coercion avar_b : nat >-> avar.
-Coercion avar_f : var >-> avar.
+(** Following defines labels *)
 
 Inductive typ_label : Set := typ_lab (_ : nat).
 
 Hint Constructors typ_label : alg_def.
-(* Coercion typ_lab : atom >-> typ_label. *)
+Coercion typ_lab : nat >-> typ_label.
 
 Inductive trm_label : Set := trm_lab (_ : nat).
 
 Hint Constructors trm_label : alg_def.
-(* Coercion trm_lab : atom >-> trm_label. *)
+Coercion trm_lab : nat >-> trm_label.
 
 Inductive label : Set :=
 | label_typ : typ_label -> label
@@ -116,6 +149,8 @@ Class HasLabel (T : Set) :=
 Definition to_label_assoc {T} {hlb : HasLabel T} :=
  nlist_to_assoc get_label.
 
+(** Following code assigns abilities to reason about assoc list
+    keyed by labels. *)
 Module Type EqDecidableType <: UsualDecidableType.
   Parameter t : Set.
   Parameter eq_dec : forall x y : t, {x = y} + {x <> y}.
@@ -123,7 +158,7 @@ Module Type EqDecidableType <: UsualDecidableType.
   Include HasUsualEq <+ UsualIsEq <+ UsualIsEqOrig.
 End EqDecidableType.
 
-Module Label : EqDecidableType.
+Module Label <: EqDecidableType.
   Definition t := label.
 
   Definition eq_dec : forall x y : t, {x = y} + {x <> y}.
@@ -144,3 +179,20 @@ Module LabelSetImpl : FSetExtra.WSfun Label :=
   FSetExtra.Make Label.
 
 Module LabelAssocList := AssocList.Make Label LabelSetImpl.
+
+
+(* Definition replace_by_key {A : Set} {hlb : HasLabel A} *)
+(*            (l : label) (nv : A) (nl : nlist A) : nlist A := *)
+(*   nlistOps.map (fun e => if get_label e == l then nv else e) nl. *)
+
+
+(* Lemma replace_effective : forall {A : Set} {hlb : HasLabel A} l e nv (nl : nlist A), *)
+(*     LabelAssocList.binds l e $ to_label_assoc nl -> *)
+(*     get_label e = l -> *)
+(*     get_label nv = l -> *)
+(*     LabelAssocList.binds l nv $ to_label_assoc $ replace_by_key l nv nl. *)
+(* Proof. *)
+(*   intros. gen e l nv. unfold LabelAssocList.binds. *)
+(*   induction nl; intros; simpl in *; destruct_all; subst; try contradiction; *)
+(*   try (destruct_eq; [left; trivial | congruence]). *)
+(*   destruct_eq. *)

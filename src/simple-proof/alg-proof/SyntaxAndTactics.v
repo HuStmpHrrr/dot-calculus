@@ -1,3 +1,5 @@
+Require Import Metalib.Metatheory.
+
 Notation "f $ x" := (f x) (at level 69, right associativity, only parsing).
 
 Tactic Notation "gen" ident(x) := generalize dependent x.
@@ -13,3 +15,14 @@ Ltac destruct_all :=
   | [ H : exists _, _ |- _ ] => destruct H
   | [  |- _ ] => fail 1
   end; try destruct_all.
+
+Ltac destruct_eq :=
+  destruct_notin;
+  match goal with
+    | [ |- context[if ?x == ?y then _ else _]] => destruct (x == y)
+  end.
+
+Ltac equality :=
+  simpl in *; try congruence;
+  destruct_eq;
+  auto; try congruence.
