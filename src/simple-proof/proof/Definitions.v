@@ -501,7 +501,7 @@ Hint Constructors
 (** ** Mutual Induction Principles *)
 
 Scheme typ_mut := Induction for typ Sort Prop
-with   dec_mut := Induction for dec Sort Prop.
+  with   dec_mut := Induction for dec Sort Prop.
 Combined Scheme typ_mutind from typ_mut, dec_mut.
 
 Scheme trm_mut  := Induction for trm  Sort Prop
