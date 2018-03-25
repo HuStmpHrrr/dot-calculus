@@ -26,38 +26,70 @@ Ltac destruct_all :=
   | [ H : exists _, _ |- _ ] => destruct H
   | [tup : _ * _ |- _ ] => destruct tup
   | [ ev : { _ } + { _ } |- _ ] => destruct ev
-  | [ ev : _ + { _ } |- _ ] => destruct_all ev
+  | [ ev : _ + { _ } |- _ ] => destruct ev
   end.
 
 Ltac destruct_eq :=
   simpl;
   destruct_notin;
   match goal with
-  | [ |- context[if ?x == ?x then _ else _]] => destruct (x == x); [| congruence]
-    | [ |- context[if ?x == ?y then _ else _]] => destruct (x == y); [subst |]
+  | [ |- context[if ?x == ?x then _ else _]] =>
+    destruct (x == x); [| congruence]
+  | [ |- context[if ?x == ?y then _ else _]] =>
+    destruct (x == y); [subst |]
+  | [ H : context[if ?x == ?x then _ else _] |- _] =>
+    destruct (x == x); [| congruence]
+  | [ H : context[if ?x == ?y then _ else _] |- _] =>
+    destruct (x == y); [subst |]
   end.
 
 Ltac equality :=
   simpl in *; try congruence;
-  destruct_eq; 
+  repeat destruct_eq; 
   auto; try congruence.
 
 Ltac dep_destruct ev :=
   let E := fresh "E" in
   remember ev as E; simpl in E; dependent destruction E.
 
+Ltac app_conj' lem tac :=
+  match type of lem with
+  | _ /\ _ => app_conj' constr:(proj1 lem) tac
+            || app_conj' constr:(proj2 lem) tac
+  | _ => tac lem
+  end.
+
+Ltac app_conj lem := app_conj' lem ltac:(fun l => apply l).
+Ltac eapp_conj lem := app_conj' lem ltac:(fun l => eapply l).
+
 Ltac try_discharge :=
   try (fsetdec || congruence).
 
-Ltac routine :=
-  intros; simpl in *; try destruct_eq; destruct_all;
-  try solve [repeat f_equal; try_discharge; auto];
-  try_discharge; auto.
+Ltac routine_impl tac :=
+  intros;
+  simpl in *; cbn in *; autounfold;
+  repeat destruct_eq; destruct_all;
+  repeat f_equal;
+  tac.
 
-Ltac eroutine :=
-  intros; simpl in *; try destruct_eq; destruct_all;
-  try solve [repeat f_equal; try_discharge; auto];
-  try_discharge; eauto.
+Tactic Notation "routine" "with" tactic(db) :=
+  routine_impl ltac:(idtac; try_discharge; auto with db).
+
+Tactic Notation "routine" "using" ident(lem) "with" tactic(db) :=
+  routine_impl ltac:(idtac ;try_discharge; auto using lem with db).
+
+Tactic Notation "routine" :=
+  routine_impl ltac:(idtac; try_discharge; auto).
+
+Tactic Notation "eroutine" "with" tactic(db) :=
+  routine_impl ltac:(idtac; try_discharge; eauto with db).
+
+Tactic Notation "eroutine" "using" ident(lem) "with" tactic(db) :=
+  routine_impl ltac:(idtac; try_discharge; eauto using lem with db).
+
+Tactic Notation "eroutine" :=
+  routine_impl ltac:(idtac; try_discharge; eauto).
+
 
 (** PRIMITIVES *)
 
@@ -89,6 +121,12 @@ Ltac invert_all_not_empty :=
   end.
 
 Tactic Notation "invert_not_empty" := invert_all_not_empty.
+
+Lemma not_empty_relax : forall {A : Type} (l1 l l2 : list A),
+    not_empty l -> not_empty $ l1 ++ l ++ l2.
+Proof.
+  induction l1; intros; invert_not_empty; simpl; trivial.
+Qed.
 
 Inductive list_pred {A B : Type} (pred : (A * B) -> Prop) : list (A * B) -> Prop :=
 | pred_nil : list_pred pred nil
@@ -197,64 +235,43 @@ Module ReplacementExample.
 End ReplacementExample.
 
 
-(*
+(**
  * It's very painful that we will need to deal with two data types that
  * are effectively lists, but we cannot use list directly, because we need
  * to build mutual recursion.
  *)
 
-Module Type ListIsomorphism.
+Class ListIso (elem : Type) (t : Type) :=
+  {
+    to_list : t -> list elem;
+    from_list : list elem -> t;
+    from_to_iso : forall (l : t), from_list $ to_list l = l;
+    to_from_iso : forall (l : list elem), to_list $ from_list l = l;
+    (* Operations *)
+    append : t -> t -> t;
+    append_sound : forall l1 l2, to_list $ append l1 l2 = to_list l1 ++ to_list l2
+  }.
 
-  Parameter elem : Type.
-  Parameter t : Type.
+Section ListIsoProps.
 
-  Parameter to_list : t -> list elem.
-  Parameter from_list : list elem -> t.
-
-  Axiom forth_then_back_iso :
-    forall (l : t), from_list $ to_list l = l.
+  Variable elem : Type.
+  Variable t : Type.
+  Variable iso : ListIso elem t.
   
-  Axiom back_then_forth_iso :
-    forall (l : list elem), to_list $ from_list l = l.
-
-  (** OPERATIONS *)
-  
-  Parameter app : t -> t -> t.
-
-  Axiom app_sound :
-    forall l1 l2, to_list $ app l1 l2 = to_list l1 ++ to_list l2.
-
-End ListIsomorphism.
-
-Module ListIsoProps (I : ListIsomorphism).
-  Import I.
-
-  Local Hint Resolve forth_then_back_iso back_then_forth_iso.
-  
-  Theorem exists_to_list :
-    forall l, exists lt, to_list lt = l.
-  Proof.
-    intros. exists (from_list l). auto.
-  Qed.
-
-  Theorem exists_from_list :
-    forall lt, exists l, from_list l = lt.
-  Proof.
-    intros. exists (to_list lt). auto.
-  Qed.
-
-  Theorem app_complete :
-    forall l1 l2, app (from_list l1) $ from_list l2 = from_list $ l1 ++ l2.
+  Theorem append_complete :
+    forall l1 l2, append (from_list l1) $ from_list l2 = from_list $ l1 ++ l2.
   Proof.
     intros.
-    replace (app (from_list l1) $ from_list l2)
-      with (from_list $ to_list $ app (from_list l1) $ from_list l2).
-    - f_equal. rewrite app_sound. do 2 rewrite back_then_forth_iso.
+    replace (append (from_list l1) $ from_list l2)
+      with (from_list $ to_list $ append (from_list l1) $ from_list l2).
+    - f_equal. rewrite append_sound. do 2 rewrite to_from_iso.
       auto.
-    - rewrite forth_then_back_iso. auto.
+    - rewrite from_to_iso. auto.
   Qed.
 
 End ListIsoProps.
+Arguments append_complete {elem t iso}.
+
 
 (** Following defines labels *)
 

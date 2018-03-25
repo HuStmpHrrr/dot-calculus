@@ -3,11 +3,12 @@
     Coq library by Arthur Chargueraud. *)
 
 Set Implicit Arguments.
+Create HintDb alg_def discriminated.
 
 Require Import Metalib.Metatheory.
-Require LibLN.
+(* Require LibLN. *)
 Require Import LibUtils.
-
+Require Import Concepts.
 Require Import Coq.Lists.List.
 
 
@@ -41,52 +42,34 @@ decs : Set :=
 Hint Constructors typ dec decs : alg_def.
 
 
-Module DecsList <: ListIsomorphism.
+Instance DecsList : ListIso (label * dec) decs :=
+  {
+    to_list := fix to_list (ds : decs) :=
+      match ds with
+      | decs_nil => nil
+      | decs_cons l d ds' => (l, d) :: to_list ds'
+      end;
+    
+    from_list := fix from_list (l : list (label * dec)) :=
+      match l with
+      | nil => decs_nil
+      | cons (l, d) l' => decs_cons l d $ from_list l'
+      end;
 
-  Definition elem := (label * dec)%type.
-  Definition t := decs.
+    append := fix app (l1 : decs) (l2 : decs) : decs :=
+      match l1 with
+      | decs_nil => l2
+      | decs_cons l d l1' => decs_cons l d $ app l1' l2
+      end
+  }.
+Proof.
+  1-2: induction l; routine.
+  induction l1; routine.
+Qed.
 
-  Fixpoint to_list (ds : decs) : list (label * dec) :=
-    match ds with
-    | decs_nil => nil
-    | decs_cons l d ds' => (l, d) :: to_list ds'
-    end.
-
-  Fixpoint from_list (l : list (label * dec)) : decs :=
-    match l with
-    | nil => decs_nil
-    | cons (l, d) l' => decs_cons l d $ from_list l'
-    end.
-
-  Lemma forth_then_back_iso :
-    forall (l : t), from_list $ to_list l = l.
-  Proof.
-    induction l; simpl in *; f_equal; auto.
-  Qed.
-
-  Lemma back_then_forth_iso :
-    forall (l : list (label * dec)), to_list $ from_list l = l.
-  Proof.
-    induction l; destruct_all; simpl in *; f_equal; auto.
-  Qed.
-
-  Fixpoint app (l1 : decs) (l2 : decs) : decs :=
-    match l1 with
-    | decs_nil => l2
-    | decs_cons l d l1' => decs_cons l d $ app l1' l2
-    end.
-
-  Lemma app_sound :
-    forall l1 l2, to_list $ app l1 l2 = to_list l1 ++ to_list l2.
-  Proof.
-    induction l1; intros; simpl in *; f_equal; auto.
-  Qed.
-
-End DecsList.
-
-Module DecsListProps := ListIsoProps DecsList.
-
-Coercion DecsList.to_list : decs >-> list.
+Definition decs_to_list (ds : decs) := to_list ds.
+Hint Unfold decs_to_list.
+Coercion decs_to_list : decs >-> list.
 
 Notation "⊤" := typ_top.
 Notation "⊥" := typ_bot.
@@ -97,9 +80,12 @@ Notation "X ∈ A ⋯ B" := (X, dec_typ A B) (at level 40).
 Notation "x ∷ T" := (x, dec_trm T) (at level 40).
 Notation "μ{ ds }" := (typ_obj ds) (at level 40).
 
-(* Parameter X : nat. *)
-(* Parameter Y : nat. *)
-(* Check μ{ DecsList.from_list $ <[ label_trm X ∷ ⊥ ; label_typ Y ∈ ⊥ ⋯ ⊤ ]> }. *)
+Section TypExample.
+  Variable X : nat.
+  Variable Y : nat.
+  Check μ{ from_list $ <[ label_trm X ∷ ⊥ ; label_typ Y ∈ ⊥ ⋯ ⊤ ]> }.
+End TypExample.
+
 
 Inductive wf_lab_dec : label * dec -> Prop :=
 | wf_ld_typ : forall X A B, wf_lab_dec (label_typ X ∈ A ⋯ B)
@@ -130,58 +116,41 @@ defs : Set :=
 
 Hint Constructors trm val def defs : alg_def.
 
-Module DefsList <: ListIsomorphism.
+Instance DefsList : ListIso (label * def) defs :=
+  {
+    to_list := fix to_list (ds : defs) :=
+      match ds with
+      | defs_nil => nil
+      | defs_cons l d ds' => (l, d) :: to_list ds'
+      end;
+    
+    from_list := fix from_list (l : list (label * def)) :=
+      match l with
+      | nil => defs_nil
+      | cons (l, d) l' => defs_cons l d $ from_list l'
+      end;
 
-  Definition elem := (label * def)%type.
-  Definition t := defs.
+    append := fix app (l1 : defs) (l2 : defs) : defs :=
+      match l1 with
+      | defs_nil => l2
+      | defs_cons l d l1' => defs_cons l d $ app l1' l2
+      end
+  }.
+Proof.
+  1-2: induction l; routine.
+  induction l1; routine.
+Qed.
 
-  Fixpoint to_list (ds : defs) : list (label * def) :=
-    match ds with
-    | defs_nil => nil
-    | defs_cons l d ds' => (l, d) :: to_list ds'
-    end.
-
-  Fixpoint from_list (l : list (label * def)) : defs :=
-    match l with
-    | nil => defs_nil
-    | cons (l, d) l' => defs_cons l d $ from_list l'
-    end.
-
-  Lemma forth_then_back_iso :
-    forall (l : t), from_list $ to_list l = l.
-  Proof.
-    induction l; simpl in *; f_equal; auto.
-  Qed.
-
-  Lemma back_then_forth_iso :
-    forall (l : list (label * def)), to_list $ from_list l = l.
-  Proof.
-    induction l; destruct_all; simpl in *; f_equal; auto.
-  Qed.
-
-  Fixpoint app (l1 : defs) (l2 : defs) : defs :=
-    match l1 with
-    | defs_nil => l2
-    | defs_cons l d l1' => defs_cons l d $ app l1' l2
-    end.
-
-  Lemma app_sound :
-    forall l1 l2, to_list $ app l1 l2 = to_list l1 ++ to_list l2.
-  Proof.
-    induction l1; intros; simpl in *; f_equal; auto.
-  Qed.
-End DefsList.
-
-Module DefsListProps := ListIsoProps DefsList.
-
-Coercion DefsList.to_list : defs >-> list.
+Definition defs_to_list (dfs: defs) := to_list dfs.
+Hint Unfold defs_to_list.
+Coercion defs_to_list : defs >-> list.
 
 Notation "'lett' x 'inn' y" := (trm_let x y) (at level 40).
 
 Notation "A ≡ B" := (A, def_typ B) (at level 40).
 Notation "x ⩴ t" := (x, def_trm t) (at level 40).
 
-Notation "ν( ds ){ dfs }" := (val_new ds dfs) (at level 40).
+Notation "ν( DS ){ ds }" := (val_new DS ds) (at level 40).
 
 Notation "λ( T ){ t }" := (val_lambda T t) (at level 40).
 
@@ -193,136 +162,178 @@ Hint Constructors wf_lab_def : alg_def.
 Definition wf_defs l := luniq l /\ not_empty l /\ list_pred wf_lab_def l.
 Hint Unfold wf_defs.
 
-Definition open_rec_avar (k : nat) (u : var) (a : avar) : avar :=
-  match a with
-  | avar_b i => if k == i then avar_f u else avar_b i
-  | avar_f x => avar_f x
-  end.
 
-Fixpoint open_rec_typ (k : nat) (u : var) (T : typ) : typ :=
-  match T with
-  | ⊤ => ⊤
-  | ⊥ => ⊥
-  | x ⋅ T => (open_rec_avar k u x) ⋅ T
-  | all( T ) U => all( open_rec_typ k u T ) open_rec_typ (S k) u U
-  | μ{ ds } => μ{ open_rec_decs (S k) u ds }
-  end
-with
-open_rec_dec (k : nat) (u : var) (D : dec) : dec :=
-  match D with
-  | dec_typ T U => dec_typ (open_rec_typ k u T) $ open_rec_typ k u U
-  | dec_trm T => dec_trm $ open_rec_typ k u T
-  end
-with
-open_rec_decs (k : nat) (u : var) (DS : decs) : decs :=
-  match DS with
-  | decs_nil => decs_nil
-  | decs_cons l D DS' => decs_cons l (open_rec_dec k u D) $ open_rec_decs k u DS'
-  end.
+(** OPENING *)
+Section OpeningDefinition.
+  
+  Definition open_rec_avar (k : nat) (u : var) (a : avar) : avar :=
+    match a with
+    | avar_b i => if k == i then avar_f u else avar_b i
+    | avar_f x => avar_f x
+    end.
+
+  Fixpoint open_rec_typ (k : nat) (u : var) (T : typ) : typ :=
+    match T with
+    | ⊤ => ⊤
+    | ⊥ => ⊥
+    | x ⋅ T => (open_rec_avar k u x) ⋅ T
+    | all( T ) U => all( open_rec_typ k u T ) open_rec_typ (S k) u U
+    | μ{ ds } => μ{ open_rec_decs (S k) u ds }
+    end
+  with
+  open_rec_dec (k : nat) (u : var) (D : dec) : dec :=
+    match D with
+    | dec_typ T U => dec_typ (open_rec_typ k u T) $ open_rec_typ k u U
+    | dec_trm T => dec_trm $ open_rec_typ k u T
+    end
+  with
+  open_rec_decs (k : nat) (u : var) (DS : decs) : decs :=
+    match DS with
+    | decs_nil => decs_nil
+    | decs_cons l D DS' =>
+      decs_cons l (open_rec_dec k u D) $ open_rec_decs k u DS'
+    end.
+  
+  (**
+   * we need this function in order to open an object by its own.
+   *)
+  Definition open_typ_to_context (u : var) (T : typ) : typ :=
+    match T with
+    | μ{ ds } => μ{ open_rec_decs 0 u ds }
+    | T => open_rec_typ 0 u T
+    end.
+
+  
+  Fixpoint open_rec_trm (k : nat) (u : var) (t : trm) : trm :=
+    match t with
+    | trm_var a => trm_var $ open_rec_avar k u a
+    | trm_val v => trm_val $ open_rec_val k u v
+    | trm_sel v m => trm_sel (open_rec_avar k u v) m
+    | trm_app f x => trm_app (open_rec_avar k u f) $ open_rec_avar k u x
+    | trm_let t1 t2 => trm_let (open_rec_trm k u t1) $ open_rec_trm (S k) u t2
+    end
+  with
+  open_rec_val (k : nat) (u : var) (v : val) : val :=
+    match v with
+    | λ( T ){ e } => λ( open_rec_typ k u T ){ open_rec_trm (S k) u e }
+    | ν( DS ){ ds } =>
+      ν( open_rec_decs (S k) u DS ){ open_rec_defs (S k) u ds }
+    end
+  with
+  open_rec_def (k : nat) (u : var) (d : def) : def :=
+    match d with
+    | def_typ T => def_typ $ open_rec_typ k u T
+    | def_trm e => def_trm $ open_rec_trm k u e
+    end
+  with
+  open_rec_defs (k : nat) (u : var) (ds : defs) : defs :=
+    match ds with
+    | defs_nil => defs_nil
+    | defs_cons l df ds' => defs_cons l (open_rec_def k u df) $ open_rec_defs k u ds'
+    end.
+
+  Definition open_val_to_context (u : var) (v : val) : val :=
+    match v with
+    | ν( DS ){ ds } => ν( open_rec_decs 0 u DS ){ open_rec_defs 0 u ds }
+    | v => open_rec_val 0 u v
+    end.
+
+  Definition open_trm_to_context (u : var) (t : trm) : trm :=
+    match t with
+    | trm_val v => trm_val $ open_val_to_context u v
+    | t => open_rec_trm 0 u t
+    end.
+  
+End OpeningDefinition.
+
+Instance OpenAvar : CanOpen avar := { open_rec := open_rec_avar }.
+Instance OpenTyp : CanOpen typ := { open_rec := open_rec_typ }.
+Instance OpenDec : CanOpen dec := { open_rec := open_rec_dec }.
+Instance OpenDecs : CanOpen decs := { open_rec := open_rec_decs }.
+Instance OpenTrm : CanOpen trm := { open_rec := open_rec_trm }.
+Instance OpenVal : CanOpen val := { open_rec := open_rec_val }.
+Instance OpenDef : CanOpen def := { open_rec := open_rec_def }.
+Instance OpenDefs : CanOpen defs := { open_rec := open_rec_defs }.
+
+Notation open := (open_rec 0).
+
+(* Notation open_avar := (open_rec_avar 0). *)
+(* Notation open_typ := (open_rec_typ 0). *)
+(* Notation open_dec := (open_rec_dec 0). *)
+(* Notation open_decs := (open_rec_decs 0). *)
+(* Notation open_trm := (open_rec_trm 0). *)
+(* Notation open_val := (open_rec_val 0). *)
+(* Notation open_def := (open_rec_def 0). *)
+(* Notation open_defs := (open_rec_defs 0). *)
 
 
-(**
- * we need this function in order to open an object by its own.
- *)
-Definition open_typ_to_context (u : var) (T : typ) : typ :=
-  match T with
-  | μ{ ds } => μ{ open_rec_decs 0 u ds }
-  | T => open_rec_typ 0 u T
-  end.
+Section FreeVariables.
 
+  Definition fv_avar (a : avar) : atoms :=
+    match a with
+    | avar_b i => {}
+    | avar_f x => {{ x }}
+    end.
 
-Fixpoint open_rec_trm (k : nat) (u : var) (t : trm) : trm :=
-  match t with
-  | trm_var a => trm_var $ open_rec_avar k u a
-  | trm_val v => trm_val $ open_rec_val k u v
-  | trm_sel v m => trm_sel (open_rec_avar k u v) m
-  | trm_app f x => trm_app (open_rec_avar k u f) $ open_rec_avar k u x
-  | trm_let t1 t2 => trm_let (open_rec_trm k u t1) $ open_rec_trm (S k) u t2
-  end
-with
-open_rec_val (k : nat) (u : var) (v : val) : val :=
-  match v with
-  | λ( T ){ e } => λ( open_rec_typ k u T ){ open_rec_trm (S k) u e }
-  | ν( DS ){ dfs } =>
-    ν( open_rec_decs (S k) u DS ){ open_rec_defs (S k) u dfs }
-  end
-with
-open_rec_def (k : nat) (u : var) (d : def) : def :=
-  match d with
-  | def_typ T => def_typ $ open_rec_typ k u T
-  | def_trm e => def_trm $ open_rec_trm k u e
-  end
-with
-open_rec_defs (k : nat) (u : var) (dfs : defs) : defs :=
-  match dfs with
-  | defs_nil => defs_nil
-  | defs_cons l df dfs' => defs_cons l (open_rec_def k u df) $ open_rec_defs k u dfs'
-  end.
+  Fixpoint fv_typ (T : typ) : atoms :=
+    match T with
+    | ⊤ => {}
+    | ⊥ => {}
+    | x ⋅ T => fv_avar x
+    | all( T ) U => fv_typ T `union` fv_typ U
+    | μ{ DS } => fv_decs DS
+    end
+  with
+  fv_dec (D : dec) : atoms :=
+    match D with
+    | dec_typ T U => fv_typ T `union` fv_typ U
+    | dec_trm T => fv_typ T
+    end
+  with
+  fv_decs (DS : decs) : atoms :=
+    match DS with
+    | decs_nil => {}
+    | decs_cons _ D DS' => fv_dec D `union` fv_decs DS'
+    end.
 
-Notation open_avar := (open_rec_avar 0).
-Notation open_typ := (open_rec_typ 0).
-Notation open_dec := (open_rec_dec 0).
-Notation open_decs := (open_rec_decs 0).
-Notation open_trm := (open_rec_trm 0).
-Notation open_val := (open_rec_val 0).
-Notation open_def := (open_rec_def 0).
-Notation open_defs := (open_rec_defs 0).
+  Fixpoint fv_trm (t : trm) : atoms :=
+    match t with
+    | trm_var a => fv_avar a
+    | trm_val v => fv_val v
+    | trm_sel v m => fv_avar v
+    | trm_app f x => fv_avar f `union` fv_avar x
+    | trm_let t1 t2 => fv_trm t1 `union` fv_trm t2
+    end
+  with
+  fv_val (v : val) : atoms :=
+    match v with
+    | λ( T ){ e } => fv_typ T `union` fv_trm e
+    | ν( DS ){ ds } => fv_decs DS `union` fv_defs ds
+    end
+  with
+  fv_def (d : def) : atoms :=
+    match d with
+    | def_typ T => fv_typ T
+    | def_trm e => fv_trm e
+    end
+  with
+  fv_defs (ds : defs) : atoms :=
+    match ds with
+    | defs_nil => {}
+    | defs_cons _ d ds' => fv_def d `union` fv_defs ds'
+    end.
 
-Definition fv_avar (a : avar) : atoms :=
-  match a with
-  | avar_b i => {}
-  | avar_f x => {{ x }}
-  end.
+End FreeVariables.
 
-Fixpoint fv_typ (T : typ) : atoms :=
-  match T with
-  | ⊤ => {}
-  | ⊥ => {}
-  | x ⋅ T => fv_avar x
-  | all( T ) U => fv_typ T `union` fv_typ U
-  | μ{ DS } => fv_decs DS
-  end
-with
-fv_dec (D : dec) : atoms :=
-  match D with
-  | dec_typ T U => fv_typ T `union` fv_typ U
-  | dec_trm T => fv_typ T
-  end
-with
-fv_decs (DS : decs) : atoms :=
-  match DS with
-  | decs_nil => {}
-  | decs_cons _ D DS' => fv_dec D `union` fv_decs DS'
-  end.
-
-
-Fixpoint fv_trm (t : trm) : atoms :=
-  match t with
-  | trm_var a => fv_avar a
-  | trm_val v => fv_val v
-  | trm_sel v m => fv_avar v
-  | trm_app f x => fv_avar f `union` fv_avar x
-  | trm_let t1 t2 => fv_trm t1 `union` fv_trm t2
-  end
-with
-fv_val (v : val) : atoms :=
-  match v with
-  | λ( T ){ e } => fv_typ T `union` fv_trm e
-  | ν( DS ){ dfs } => fv_decs DS `union` fv_defs dfs
-  end
-with
-fv_def (d : def) : atoms :=
-  match d with
-  | def_typ T => fv_typ T
-  | def_trm e => fv_trm e
-  end
-with
-fv_defs (dfs : defs) : atoms :=
-  match dfs with
-  | defs_nil => {}
-  | defs_cons _ d dfs' => fv_def d `union` fv_defs dfs'
-  end.
-
+Hint Unfold fv_avar fv_typ fv_dec fv_decs fv_trm fv_val fv_def fv_defs.
+Instance FvAvar : HasFv avar := { fv := fv_avar }.
+Instance FvTyp : HasFv typ := { fv := fv_typ }. 
+Instance FvDec : HasFv dec := { fv := fv_dec }. 
+Instance FvDecs : HasFv decs := { fv := fv_decs }.
+Instance FvTrm : HasFv trm := { fv := fv_trm }.
+Instance FvVal : HasFv val := { fv := fv_val }.
+Instance FvDef : HasFv def := { fv := fv_def }.
+Instance FvDefs : HasFv defs := { fv := fv_defs }.
 
 Reserved Notation "G '⊢' t '⦂' T" (at level 70, t at level 79).
 Reserved Notation "G '⊢' T '<⦂' U" (at level 70, T at level 79).
@@ -330,6 +341,17 @@ Reserved Notation "G ⊩ l ↦ d ⦂ D" (at level 70, d at level 79).
 Reserved Notation "G ⊩[ ds ⦂ DS ]" (at level 70, ds at level 79).
 
 Notation env := (list (atom * typ)).
+Notation sta := (list (atom * val)).
+
+Definition fv_values {T : Type} (f : T -> atoms)
+           (l : list (atom * T)) : atoms :=
+  fold_left (fun a (b : (atom * T)) =>
+               let (_, t) := b
+               in a `union` f t) l $ dom l.
+
+Instance FvEnv : HasFv env := { fv := fv_values fv }.
+Instance FvSta : HasFv sta := { fv := fv_values fv }.
+
 
 Inductive ty_trm : env -> trm -> typ -> Prop :=
 | ty_var : forall G x T,
@@ -337,12 +359,12 @@ Inductive ty_trm : env -> trm -> typ -> Prop :=
     G ⊢ trm_var x ⦂ T
 | ty_all_intro : forall L G T t U,
     (forall x, x `notin` L ->
-          x ~ T ++ G ⊢ open_trm x t ⦂ open_typ x U) ->
+          x ~ T ++ G ⊢ open x t ⦂ open x U) ->
     G ⊢ trm_val (λ( T ){ t }) ⦂ all( T ) U
 | ty_all_elim : forall G (x z : atom) S T,
     G ⊢ trm_var x ⦂ all( S ) T ->
     G ⊢ trm_var z ⦂ S ->
-    G ⊢ (trm_app x z) ⦂ open_typ z T
+    G ⊢ (trm_app x z) ⦂ open z T
 | ty_obj_intro : forall L G ds DS,
     (forall x, x `notin` L ->
           x ~ open_typ_to_context x (μ{ DS }) ++ G ⊩[ ds ⦂ DS ]) ->
@@ -355,7 +377,7 @@ Inductive ty_trm : env -> trm -> typ -> Prop :=
 | ty_let : forall L G t u T U,
     G ⊢ t ⦂ T ->
     (forall x, x `notin` L ->
-          x ~ T ++ G ⊢ open_trm x u ⦂ U) ->
+          x ~ T ++ G ⊢ open x u ⦂ U) ->
     G ⊢ lett u inn u ⦂ U
 | ty_sub : forall G t T U,
     G ⊢ t ⦂ T ->
@@ -395,13 +417,13 @@ subtyp : env -> typ -> typ -> Prop :=
 | subtyp_all: forall L G S1 T1 S2 T2,
     G ⊢ S2 <⦂ S1 ->
     (forall x, x `notin` L ->
-       x ~ S2 ++ G ⊢ open_typ x T1 <⦂ open_typ x T2) ->
+       x ~ S2 ++ G ⊢ open x T1 <⦂ open x T2) ->
     G ⊢ typ_all S1 T1 <⦂ typ_all S2 T2
 | subtyp_fld : forall G L a T (DS : decs) U
                  (ev : lbinds (label_trm a) (dec_trm T) DS),
     (forall x, x `notin` L ->
           x ~ open_typ_to_context x (μ{ DS }) ++ G ⊢ T <⦂ U) ->
-    G ⊢ μ{ DS } <⦂ μ{ DecsList.from_list
+    G ⊢ μ{ DS } <⦂ μ{ from_list
                         $ replace_value (dec_trm U) ev } (* DS[a := U] *)
 | subtyp_typ : forall G L A (DS : decs) S1 T1 S2 T2
                  (ev : lbinds (label_typ A) (dec_typ S1 T1) DS),
@@ -409,23 +431,23 @@ subtyp : env -> typ -> typ -> Prop :=
           x ~ open_typ_to_context x (μ{ DS }) ++ G ⊢ S2 <⦂ S1) ->
     (forall y, y `notin` L ->
           y ~ open_typ_to_context y (μ{ DS }) ++ G ⊢ T1 <⦂ T2) ->
-    G ⊢ μ{ DS } <⦂ μ{ DecsList.from_list
+    G ⊢ μ{ DS } <⦂ μ{ from_list
                         $ replace_value (dec_typ S2 T2) ev } (* DS[A := S2 .. T2] *)
 | subtyp_drop1 : forall G (DS1 : decs) (DS2 : decs),
     not_empty DS1 ->
     not_empty DS2 ->
-    G ⊢ μ{ DecsList.app DS1 DS2 } <⦂ μ{ DS2 }
+    G ⊢ μ{ append DS1 DS2 } <⦂ μ{ DS2 }
 | subtyp_drop2 : forall G (DS1 : decs) (DS2 : decs),
     not_empty DS1 ->
     not_empty DS2 ->
-    G ⊢ μ{ DecsList.app DS1 DS2 } <⦂ μ{ DS1 }
+    G ⊢ μ{ append DS1 DS2 } <⦂ μ{ DS1 }
 | subtyp_merge : forall G (DS : decs) (DS1 : decs) (DS2 : decs),
     not_empty DS ->
     not_empty DS1 ->
     not_empty DS2 ->
     G ⊢ μ{ DS } <⦂ μ{ DS1 } ->
     G ⊢ μ{ DS } <⦂ μ{ DS2 } ->
-    G ⊢ μ{ DS } <⦂ μ{ DecsList.app DS1 DS2 }
+    G ⊢ μ{ DS } <⦂ μ{ append DS1 DS2 }
 | subtyp_sel1 : forall G x A DS S T,
     G ⊢ trm_var x ⦂ μ{ DS } ->
     lbinds (label_typ A) (dec_typ S T) DS ->
@@ -435,6 +457,14 @@ subtyp : env -> typ -> typ -> Prop :=
     lbinds (label_typ A) (dec_typ S T) DS ->
     G ⊢ S <⦂ typ_sel x A
 where "G ⊢ T <⦂ U" := (subtyp G T U) : type_scope.
+Hint Constructors ty_trm ty_def ty_defs subtyp : alg_def.
+
+
+Definition ty_equivalence G T U : Prop :=
+  G ⊢ T <⦂ U <-> G ⊢ U <⦂ T.
+
+Notation "G ⊢ T ≊ U" := (ty_equivalence G T U)(at level 70) : type_scope.
+
 
 (** mutual inductive schemes *)
 
@@ -456,4 +486,31 @@ Scheme ty_trm_mut := Induction for ty_trm Sort Prop
   with subtyp_mut := Induction for subtyp Sort Prop.
 Combined Scheme typing_mut from ty_trm_mut, ty_def_mut, ty_defs_mut, subtyp_mut.
 
+(** Tactics *)
 
+Ltac gather_atoms ::=
+  let A := gather_atoms_with (fun x : atoms => x) in
+  let B := gather_atoms_with (fun x : atom => singleton x) in
+  let C := gather_atoms_with (fun x : env => fv x) in
+  let D := gather_atoms_with fv_avar in
+  let E := gather_atoms_with fv_typ in
+  let F := gather_atoms_with fv_dec in
+  let G := gather_atoms_with fv_decs in
+  let H := gather_atoms_with fv_trm in
+  let I := gather_atoms_with fv_val in
+  let J := gather_atoms_with fv_def in
+  let K := gather_atoms_with fv_defs in
+  let L := gather_atoms_with (fun x : sta => fv x) in
+  constr:(A `union` B `union` C `union` D `union` E `union` F `union` G
+            `union` H `union` I `union` J `union` K `union` L).
+
+
+Ltac mut_ind :=
+  intros;
+  match goal with
+  | [ |- (forall _ : typ, _) /\ (forall _ : dec, _) /\ (forall _ : decs, _) ] =>
+    apply typ_mutind
+  | [ |- (forall _ : trm, _) /\ (forall _ : val, _) /\ (forall _ : def, _) /\ (forall _ : defs, _)] =>
+    apply trm_mutind
+  end.
+Tactic Notation "mutual" "induction" := mut_ind.
