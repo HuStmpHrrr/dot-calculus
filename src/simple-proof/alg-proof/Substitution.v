@@ -104,10 +104,10 @@ Section OpenFreshInj.
     fresh_inj typ /\ fresh_inj dec /\ fresh_inj decs.
   Proof. mutual induction; boom. Qed.
 
-  Hint Extern 1 (_ = _) =>
+  Local Hint Extern 1 (_ = _) =>
   match goal with
   | [ |- ?t = _ ] =>
-    ensure typ t; eexapply open_fresh_inj_typ_dec_decs
+    ensure typ t; eapply open_fresh_inj_typ_dec_decs
   end.
   
   Lemma open_fresh_inj_trm_val_def_defs :
@@ -138,7 +138,7 @@ Section SubstFresh.
   Local Hint Extern 1 (_ = _) =>
   match goal with
   | [ |- ?t = _ ] =>
-    ensure typ t; exapply subst_fresh_typ_dec_decs
+    ensure typ t; apply subst_fresh_typ_dec_decs
   end.
 
   Lemma subst_fresh_trm_val_def_defs :
@@ -146,3 +146,84 @@ Section SubstFresh.
   Proof. mutual induction; routine. Qed.
   
 End SubstFresh.
+
+
+Section SubstOpenComm.
+
+  Variable x y : var.
+
+  (** z[y/x] *)
+  Definition subst_fvar (z : var) : var :=
+    if z == x then y else z.
+
+  Local Notation "z [y/x]" := (subst_fvar z) (at level 50).
+
+  Variable u : var.
+
+  Local Notation subst_open_comm T u :=
+    (forall (t : T) (n : nat),
+        substi x y (open_rec n u t) =
+        open_rec n (subst_fvar u) $ substi x y t).
+
+  Lemma subst_open_comm_avar : forall u,
+      subst_open_comm avar u.
+  Proof.
+    intros. destruct t; routine by ltac:(idtac; unfold subst_fvar).
+  Qed.
+
+  Local Hint Resolve subst_open_comm_avar.
+  
+  Lemma subst_open_comm_typ_dec_decs : forall u,
+      subst_open_comm typ u /\ subst_open_comm dec u /\
+      subst_open_comm decs u.
+  Proof. mutual induction; routine. Qed.
+
+  Local Hint Extern 1 =>
+  match goal with
+  | [  |- ?x = _ ] =>
+    ensure typ x; apply subst_open_comm_typ_dec_decs
+  end.
+
+  Lemma subst_open_comm_trm_val_def_defs : forall u,
+      subst_open_comm trm u /\ subst_open_comm val u /\
+      subst_open_comm def u /\ subst_open_comm defs u.
+  Proof. mutual induction; routine. Qed.
+
+End SubstOpenComm.
+Hint Unfold subst_fvar.
+
+Section SubstIntro.
+
+  Local Notation subst_intro T :=
+    (forall x u (t : T) (n : nat), x `notin` fv t ->
+                            open_rec n u t = substi x u $ open_rec n x t).
+  
+  Local Hint Resolve subst_open_comm_trm_val_def_defs.
+
+  Local Hint Extern 1 =>
+  exexec subst_fresh_typ_dec_decs ltac:(fun l => rewrite l).
+
+  Local Hint Extern 1 =>
+  exexec subst_fresh_trm_val_def_defs ltac:(fun l => rewrite l).
+
+  Local Ltac boom :=
+    routine by ltac:(
+                 exexec subst_open_comm_trm_val_def_defs ltac:(
+                   fun l => rewrite l) ||
+                 exexec subst_open_comm_typ_dec_decs ltac:(
+                   fun l => rewrite l)).
+  
+  Lemma subst_intro_trm : subst_intro trm.
+  Proof. boom. Qed.
+
+  Lemma subst_intro_defs : subst_intro defs.
+  Proof. boom. Qed.
+
+  Lemma subst_intro_def : subst_intro def.
+  Proof. boom. Qed.
+
+  Lemma subst_intro_typ : subst_intro typ.
+  Proof. boom. Qed.
+
+End SubstIntro.
+

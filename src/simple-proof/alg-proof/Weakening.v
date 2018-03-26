@@ -15,9 +15,8 @@ Section Weakening.
    * both ty rules and subtyp rules.
    *)
 
-  (** this tactic massages the goal to and then apply the
-   * proper induction hypothesis in the context
-   *)
+  (** this tactic massages the goal and then apply the
+   * proper induction hypothesis in the context *)
   Local Ltac ind_massage x :=
     match goal with
     | [ |- context[_ ~ _ ++ _ ++ _ ++ _] ] =>
@@ -38,7 +37,7 @@ Section Weakening.
     end.
 
   (** master tactic for this lemma *)
-  Local Ltac determine :=
+  Local Ltac boom :=
     let x := fresh "x" in ind_massage x; auto.
   
   Lemma weaken_rules:
@@ -47,14 +46,14 @@ Section Weakening.
   Proof.
     mutual induction; intros; subst;
       match goal with
-      | [ |- _ ⊢ _ ⦂ _ ] => econstructor; determine
+      | [ |- _ ⊢ _ ⦂ _ ] => econstructor; boom
       | [ |- context[typ_all] ] => eapply subtyp_all
       | [ |- context[dec_trm]] => eapply subtyp_fld
       | [ |- context[dec_typ]] => eapply subtyp_typ
       | [ |- context[ _ ⊢ _ <⦂ _ ⋅ _]] => eapply subtyp_sel1
       | [ |- context[ _ ⊢ _ ⋅ _ <⦂ _]] => eapply subtyp_sel2
       | _ => idtac
-      end; determine.
+      end; boom.
   Qed.
 
 End Weakening.

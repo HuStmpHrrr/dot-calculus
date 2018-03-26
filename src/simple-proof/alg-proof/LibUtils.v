@@ -58,29 +58,29 @@ Ltac pick_fresh_do name tac :=
   let Fr := fresh "Fr" in
   tac L; intros name Fr.
 
-Ltac app_conj' lem tac :=
+Ltac exec_conj' lem tac :=
   match type of lem with
-  | _ /\ _ => app_conj' constr:(proj1 lem) tac
-            || app_conj' constr:(proj2 lem) tac
+  | _ /\ _ => exec_conj' constr:(proj1 lem) tac
+            || exec_conj' constr:(proj2 lem) tac
   | _ => tac lem
   end.
 
-Ltac exapply' lem tac :=
+Ltac exexec lem tac :=
   match type of lem with
   | forall _ : ?T, _ =>
     let x := fresh "x"
     in evar (x : T);
        let x' := eval unfold x in x
-       in clear x; exapply' constr:(lem x') tac
-  | _ /\ _ => app_conj' lem tac
+       in clear x; exexec constr:(lem x') tac
+  | _ /\ _ => exec_conj' lem tac
   | _ => tac lem
   end.
 
 Tactic Notation "exapply" constr(lem) :=
-  exapply' lem ltac:(fun l => apply l).
+  exexec lem ltac:(fun l => apply l).
 
 Tactic Notation "eexapply" constr(lem) :=
-  exapply' lem ltac:(fun l => eapply l).
+  exexec lem ltac:(fun l => eapply l).
 
 Ltac try_discharge :=
   try congruence.
