@@ -76,6 +76,7 @@ Instance SubstDef : CanSubst def := { substi := subst_def }.
 Instance SubstDefs : CanSubst defs := { substi := subst_defs }.
 
 Section OpenFreshInj.
+  
   Variable z : atom.
 
   Local Notation fresh_inj T :=
@@ -93,28 +94,31 @@ Section OpenFreshInj.
   Local Hint Resolve open_fresh_inj_avar.
 
   Local Ltac boom :=
-    mutual induction;
-    routine_impl ltac:(idtac;
+    eroutine by ltac:(idtac; 
     match goal with
     | [ H : _ = _ _ z ?t' |- _ ] =>
-      destruct t'; repeat f_equal; inversion H
-    end);
-    simpl in *; eauto with alg_def.
+      destruct t'; inversion H
+    end).
   
   Lemma open_fresh_inj_typ_dec_decs :
     fresh_inj typ /\ fresh_inj dec /\ fresh_inj decs.
-  Proof. boom. Qed.
+  Proof. mutual induction; boom. Qed.
 
-  Hint Extern 1 => eapp_conj open_fresh_inj_typ_dec_decs.
+  Hint Extern 1 (_ = _) =>
+  match goal with
+  | [ |- ?t = _ ] =>
+    ensure typ t; eexapply open_fresh_inj_typ_dec_decs
+  end.
   
   Lemma open_fresh_inj_trm_val_def_defs :
     fresh_inj trm /\ fresh_inj val /\ fresh_inj def /\ fresh_inj defs.
-  Proof. boom. Qed.
+  Proof. mutual induction; boom. Qed.
   
 End OpenFreshInj.
 
 
 Section SubstFresh.
+  
   Variable x y : var.
 
   Local Notation subst_fresh T :=
@@ -131,7 +135,11 @@ Section SubstFresh.
     subst_fresh typ /\ subst_fresh dec /\ subst_fresh decs.
   Proof. mutual induction; routine. Qed.
 
-  Local Hint Extern 1 => eapp_conj subst_fresh_typ_dec_decs.
+  Local Hint Extern 1 (_ = _) =>
+  match goal with
+  | [ |- ?t = _ ] =>
+    ensure typ t; exapply subst_fresh_typ_dec_decs
+  end.
 
   Lemma subst_fresh_trm_val_def_defs :
     subst_fresh trm /\ subst_fresh val /\ subst_fresh def /\ subst_fresh defs.

@@ -3,12 +3,11 @@
     Coq library by Arthur Chargueraud. *)
 
 Set Implicit Arguments.
-Create HintDb alg_def discriminated.
 
-Require Import Metalib.Metatheory.
+Require Export Metalib.Metatheory.
 (* Require LibLN. *)
-Require Import LibUtils.
-Require Import Concepts.
+Require Export LibUtils.
+Require Export Concepts.
 Require Import Coq.Lists.List.
 
 
@@ -16,7 +15,7 @@ Inductive avar : Set :=
 | avar_b : nat -> avar
 | avar_f : var -> avar.
 
-Hint Constructors avar : alg_def.
+Hint Constructors avar.
 
 Coercion avar_b : nat >-> avar.
 Coercion avar_f : var >-> avar.
@@ -39,7 +38,7 @@ decs : Set :=
 | decs_nil : decs
 | decs_cons : label -> dec -> decs -> decs.
 
-Hint Constructors typ dec decs : alg_def.
+Hint Constructors typ dec decs.
 
 
 Instance DecsList : ListIso (label * dec) decs :=
@@ -90,7 +89,7 @@ End TypExample.
 Inductive wf_lab_dec : label * dec -> Prop :=
 | wf_ld_typ : forall X A B, wf_lab_dec (label_typ X ∈ A ⋯ B)
 | wf_ld_trm : forall x T, wf_lab_dec (label_trm x ∷ T).
-Hint Constructors wf_lab_dec : alg_def.
+Hint Constructors wf_lab_dec.
 
 Definition wf_decs l := not_empty l /\ list_pred wf_lab_dec l.
 Hint Unfold wf_decs.
@@ -114,7 +113,7 @@ defs : Set :=
 | defs_nil : defs
 | defs_cons : label -> def -> defs -> defs.
 
-Hint Constructors trm val def defs : alg_def.
+Hint Constructors trm val def defs.
 
 Instance DefsList : ListIso (label * def) defs :=
   {
@@ -157,7 +156,7 @@ Notation "λ( T ){ t }" := (val_lambda T t) (at level 40).
 Inductive wf_lab_def : label * def -> Prop :=
 | wf_lf_typ : forall A B, wf_lab_def (label_typ A ≡ B)
 | wf_lf_trm : forall x t, wf_lab_def (label_trm x ⩴ t).
-Hint Constructors wf_lab_def : alg_def.
+Hint Constructors wf_lab_def.
 
 Definition wf_defs l := luniq l /\ not_empty l /\ list_pred wf_lab_def l.
 Hint Unfold wf_defs.
@@ -337,7 +336,7 @@ Instance FvDefs : HasFv defs := { fv := fv_defs }.
 
 Reserved Notation "G '⊢' t '⦂' T" (at level 70, t at level 79).
 Reserved Notation "G '⊢' T '<⦂' U" (at level 70, T at level 79).
-Reserved Notation "G ⊩ l ↦ d ⦂ D" (at level 70, d at level 79).
+Reserved Notation "G ⊩ d ⦂ D" (at level 70, d at level 79).
 Reserved Notation "G ⊩[ ds ⦂ DS ]" (at level 70, ds at level 79).
 
 Notation env := (list (atom * typ)).
@@ -347,7 +346,7 @@ Definition fv_values {T : Type} (f : T -> atoms)
            (l : list (atom * T)) : atoms :=
   fold_left (fun a (b : (atom * T)) =>
                let (_, t) := b
-               in a `union` f t) l $ dom l.
+               in a `union` f t) l {}.
 
 Instance FvEnv : HasFv env := { fv := fv_values fv }.
 Instance FvSta : HasFv sta := { fv := fv_values fv }.
@@ -385,20 +384,20 @@ Inductive ty_trm : env -> trm -> typ -> Prop :=
     G ⊢ t ⦂ U
 where "G ⊢ t ⦂ T" := (ty_trm G t T) : type_scope
 with
-ty_def : env -> label -> def -> dec -> Prop :=
+ty_def : env -> (label * def) -> dec -> Prop :=
 | ty_def_typ : forall G A T,
-    G ⊩ label_typ A ↦ def_typ T ⦂ dec_typ T T
+    G ⊩ (label_typ A, def_typ T) ⦂ dec_typ T T
 | ty_def_trm : forall G a t T,
     G ⊢ t ⦂ T ->
-    G ⊩ label_trm a ↦ def_trm t ⦂ dec_trm T
-where "G ⊩ l ↦ d ⦂ D" := (ty_def G l d D) : type_scope
+    G ⊩ (label_trm a, def_trm t) ⦂ dec_trm T
+where "G ⊩ d ⦂ D" := (ty_def G d D) : type_scope
 with
 ty_defs : env -> defs -> decs -> Prop :=
 | ty_defs_single : forall G l d D,
-    G ⊩ l ↦ d ⦂ D ->
+    G ⊩ (l, d) ⦂ D ->
     G ⊩[ defs_cons l d defs_nil ⦂ decs_cons l D decs_nil ]
 | ty_defs_mult : forall G l d D ds DS,
-    G ⊩ l ↦ d ⦂ D ->
+    G ⊩ (l, d) ⦂ D ->
     G ⊩[ ds ⦂ DS ] ->
     G ⊩[ defs_cons l d ds ⦂ decs_cons l D DS ]
 where "G ⊩[ ds ⦂ DS ]" := (ty_defs G ds DS) : type_scope
@@ -419,13 +418,13 @@ subtyp : env -> typ -> typ -> Prop :=
     (forall x, x `notin` L ->
        x ~ S2 ++ G ⊢ open x T1 <⦂ open x T2) ->
     G ⊢ typ_all S1 T1 <⦂ typ_all S2 T2
-| subtyp_fld : forall G L a T (DS : decs) U
+| subtyp_fld : forall L G a T (DS : decs) U
                  (ev : lbinds (label_trm a) (dec_trm T) DS),
     (forall x, x `notin` L ->
           x ~ open_typ_to_context x (μ{ DS }) ++ G ⊢ T <⦂ U) ->
     G ⊢ μ{ DS } <⦂ μ{ from_list
                         $ replace_value (dec_trm U) ev } (* DS[a := U] *)
-| subtyp_typ : forall G L A (DS : decs) S1 T1 S2 T2
+| subtyp_typ : forall L G A (DS : decs) S1 T1 S2 T2
                  (ev : lbinds (label_typ A) (dec_typ S1 T1) DS),
     (forall x, x `notin` L ->
           x ~ open_typ_to_context x (μ{ DS }) ++ G ⊢ S2 <⦂ S1) ->
@@ -451,19 +450,19 @@ subtyp : env -> typ -> typ -> Prop :=
 | subtyp_sel1 : forall G x A DS S T,
     G ⊢ trm_var x ⦂ μ{ DS } ->
     lbinds (label_typ A) (dec_typ S T) DS ->
-    G ⊢ typ_sel x A <⦂ T
+    G ⊢ S <⦂ typ_sel x A
 | subtyp_sel2 : forall G x A DS S T,
     G ⊢ trm_var x ⦂ μ{ DS } ->
     lbinds (label_typ A) (dec_typ S T) DS ->
-    G ⊢ S <⦂ typ_sel x A
+    G ⊢ typ_sel x A <⦂ T
 where "G ⊢ T <⦂ U" := (subtyp G T U) : type_scope.
-Hint Constructors ty_trm ty_def ty_defs subtyp : alg_def.
+Hint Constructors ty_trm ty_def ty_defs subtyp.
 
 
 Definition ty_equivalence G T U : Prop :=
   G ⊢ T <⦂ U <-> G ⊢ U <⦂ T.
 
-Notation "G ⊢ T ≊ U" := (ty_equivalence G T U)(at level 70) : type_scope.
+Notation "G ⊢ T ≊ U" := (ty_equivalence G T U)(at level 72) : type_scope.
 
 
 (** mutual inductive schemes *)
@@ -491,7 +490,7 @@ Combined Scheme typing_mut from ty_trm_mut, ty_def_mut, ty_defs_mut, subtyp_mut.
 Ltac gather_atoms ::=
   let A := gather_atoms_with (fun x : atoms => x) in
   let B := gather_atoms_with (fun x : atom => singleton x) in
-  let C := gather_atoms_with (fun x : env => fv x) in
+  let C := gather_atoms_with (fun x : env => dom x `union` fv x) in
   let D := gather_atoms_with fv_avar in
   let E := gather_atoms_with fv_typ in
   let F := gather_atoms_with fv_dec in
@@ -500,7 +499,7 @@ Ltac gather_atoms ::=
   let I := gather_atoms_with fv_val in
   let J := gather_atoms_with fv_def in
   let K := gather_atoms_with fv_defs in
-  let L := gather_atoms_with (fun x : sta => fv x) in
+  let L := gather_atoms_with (fun x : sta => dom x `union` fv x) in
   constr:(A `union` B `union` C `union` D `union` E `union` F `union` G
             `union` H `union` I `union` J `union` K `union` L).
 
@@ -512,5 +511,28 @@ Ltac mut_ind :=
     apply typ_mutind
   | [ |- (forall _ : trm, _) /\ (forall _ : val, _) /\ (forall _ : def, _) /\ (forall _ : defs, _)] =>
     apply trm_mutind
+  | [ |- (forall (G : env) (t : trm) (T : typ) (_ : G ⊢ t ⦂ T), _) /\
+        (forall (G0 : env) (d : (label * def)) (D : dec)
+           (_ : G0 ⊩ d ⦂ D), _) /\
+        (forall (G1 : env) (dfs : defs) (DS : decs)
+           (_ : G1 ⊩[ dfs ⦂ DS ]), _) /\
+        (forall (G2 : env) (S U : typ) (_ : G2 ⊢ S <⦂ U), _) ] =>
+    apply typing_mut
   end.
 Tactic Notation "mutual" "induction" := mut_ind.
+
+Tactic Notation "ensure" "typ" constr(t) :=
+  match type of t with
+  | typ => idtac
+  | dec => idtac
+  | decs => idtac
+  end.
+
+Tactic Notation "ensure" "trm" constr(t) :=
+  match type of t with
+  | trm => idtac
+  | val => idtac
+  | def => idtac
+  | defs => idtac
+  end.
+

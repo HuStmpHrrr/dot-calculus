@@ -52,6 +52,12 @@ Ltac dep_destruct ev :=
   let E := fresh "E" in
   remember ev as E; simpl in E; dependent destruction E.
 
+Ltac pick_fresh_do name tac :=
+  let L := gather_atoms in
+  let L := beautify_fset L in
+  let Fr := fresh "Fr" in
+  tac L; intros name Fr.
+
 Ltac app_conj' lem tac :=
   match type of lem with
   | _ /\ _ => app_conj' constr:(proj1 lem) tac
@@ -59,37 +65,43 @@ Ltac app_conj' lem tac :=
   | _ => tac lem
   end.
 
-Ltac app_conj lem := app_conj' lem ltac:(fun l => apply l).
-Ltac eapp_conj lem := app_conj' lem ltac:(fun l => eapply l).
+Ltac exapply' lem tac :=
+  match type of lem with
+  | forall _ : ?T, _ =>
+    let x := fresh "x"
+    in evar (x : T);
+       let x' := eval unfold x in x
+       in clear x; exapply' constr:(lem x') tac
+  | _ /\ _ => app_conj' lem tac
+  | _ => tac lem
+  end.
+
+Tactic Notation "exapply" constr(lem) :=
+  exapply' lem ltac:(fun l => apply l).
+
+Tactic Notation "eexapply" constr(lem) :=
+  exapply' lem ltac:(fun l => eapply l).
 
 Ltac try_discharge :=
-  try (fsetdec || congruence).
+  try congruence.
 
-Ltac routine_impl tac :=
+Ltac routine_impl prep tac :=
   intros;
-  simpl in *; cbn in *; autounfold;
+  prep;
+  cbn in *; autounfold;
   repeat destruct_eq; destruct_all;
   repeat f_equal;
   tac.
 
-Tactic Notation "routine" "with" tactic(db) :=
-  routine_impl ltac:(idtac; try_discharge; auto with db).
+Tactic Notation "routine" "by" tactic(prep) := 
+  routine_impl prep ltac:(idtac; try_discharge; auto).
 
-Tactic Notation "routine" "using" ident(lem) "with" tactic(db) :=
-  routine_impl ltac:(idtac ;try_discharge; auto using lem with db).
+Tactic Notation "routine" := routine by ltac:(idtac).
 
-Tactic Notation "routine" :=
-  routine_impl ltac:(idtac; try_discharge; auto).
+Tactic Notation "eroutine" "by" tactic(prep) := 
+  routine_impl prep ltac:(idtac; try_discharge; eauto).
 
-Tactic Notation "eroutine" "with" tactic(db) :=
-  routine_impl ltac:(idtac; try_discharge; eauto with db).
-
-Tactic Notation "eroutine" "using" ident(lem) "with" tactic(db) :=
-  routine_impl ltac:(idtac; try_discharge; eauto using lem with db).
-
-Tactic Notation "eroutine" :=
-  routine_impl ltac:(idtac; try_discharge; eauto).
-
+Tactic Notation "eroutine" := eroutine by ltac:(idtac).
 
 (** PRIMITIVES *)
 
