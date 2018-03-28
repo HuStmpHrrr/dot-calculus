@@ -49,8 +49,6 @@ Section SubEnvProps.
   Lemma subenv_implies_uniq : forall G1 G2,
       G1 ⪯ G2 -> uniq G1 /\ uniq G2.
   Proof. routine. Qed.
-
-  Require Import Coq.Program.Equality.
     
 End SubEnvProps.
 

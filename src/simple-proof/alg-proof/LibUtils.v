@@ -43,11 +43,6 @@ Ltac destruct_eq :=
     destruct (x == y); [subst |]
   end.
 
-(* Ltac equality := *)
-(*   simpl in *; try congruence; *)
-(*   repeat destruct_eq;  *)
-(*   auto; try congruence. *)
-
 Ltac dep_destruct ev :=
   let E := fresh "E" in
   remember ev as E; simpl in E; dependent destruction E.
@@ -133,22 +128,68 @@ Ltac try_discharge :=
   try congruence.
 
 Ltac routine_impl prep tac :=
-  intros;
+  intros; try cofinite;
   prep;
-  simpl in *; cbn in *; autounfold;
+  simpl in *; cbn in *; subst; autounfold;
   fold any not;
   repeat destruct_eq; destruct_all;
   repeat f_equal;
   repeat split;
   tac.
 
-Tactic Notation "routine" "by" tactic(prep) := 
-  routine_impl prep ltac:(idtac; try assumption; try_discharge; auto).
+Tactic Notation "routine" "by" tactic(prep)
+       "hinted" tactic(tac)
+       "at" int(n) := 
+  routine_impl prep ltac:(idtac; tac; try assumption; try_discharge; auto n).
+
+Tactic Notation "routine" "by" tactic(prep) "hinted" tactic(tac) :=
+  routine by ltac:(idtac; prep) hinted tac at 5.
+
+Tactic Notation "routine" "by" tactic(prep)
+       "at" int(n) := 
+  routine_impl prep ltac:(idtac; try assumption; try_discharge; auto n).
+
+Tactic Notation "routine" "hinted" tactic(tac)
+       "at" int(n) := 
+  routine_impl ltac:(idtac)
+               ltac:(idtac; tac; try assumption; try_discharge; auto n).
+
+Tactic Notation "routine" "hinted" tactic(tac) :=
+  routine by ltac:(idtac) hinted ltac:(idtac; tac).
+
+Tactic Notation "routine" "by" tactic(prep) :=
+  routine by ltac:(idtac; prep) at 5.
+
+Tactic Notation "routine" "hinted" tactic(tac) :=
+  routine hinted ltac:(idtac; tac) at 5.
 
 Tactic Notation "routine" := routine by ltac:(idtac).
 
-Tactic Notation "eroutine" "by" tactic(prep) := 
-  routine_impl prep ltac:(idtac; try eassumption; try_discharge; eauto).
+Tactic Notation "eroutine" "by" tactic(prep)
+       "hinted" tactic(tac)
+       "at" int(n) := 
+  routine_impl prep ltac:(idtac; tac; try assumption; try_discharge; eauto n).
+
+Tactic Notation "eroutine" "by" tactic(prep) "hinted" tactic(tac) :=
+  eroutine by ltac:(idtac; prep) hinted tac at 5.
+
+Tactic Notation "eroutine" "by" tactic(prep)
+       "at" int(n) := 
+  routine_impl prep ltac:(idtac; try assumption; try_discharge; eauto n).
+
+Tactic Notation "eroutine" "hinted" tactic(tac)
+       "at" int(n) := 
+  routine_impl ltac:(idtac)
+               ltac:(idtac; tac; try assumption; try_discharge; eauto n).
+
+Tactic Notation "eroutine" "hinted" tactic(tac) :=
+  eroutine by ltac:(idtac) hinted ltac:(idtac; tac).
+
+Tactic Notation "eroutine" "by" tactic(prep) :=
+  eroutine by ltac:(idtac; prep) at 5.
+
+Tactic Notation "eroutine" "hinted" tactic(tac) :=
+  eroutine hinted ltac:(idtac; tac) at 5.
 
 Tactic Notation "eroutine" := eroutine by ltac:(idtac).
 

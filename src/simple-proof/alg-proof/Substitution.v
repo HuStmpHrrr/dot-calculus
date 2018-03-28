@@ -166,7 +166,7 @@ Section SubstOpenComm.
   Lemma subst_open_comm_avar : forall u,
       subst_open_comm avar u.
   Proof.
-    intros. destruct t; routine by (idtac; unfold subst_fvar).
+    intros. destruct t; routine by (unfold subst_fvar).
   Qed.
 
   Local Hint Resolve subst_open_comm_avar.

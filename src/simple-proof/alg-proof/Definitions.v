@@ -256,15 +256,6 @@ Instance OpenDefs : CanOpen defs := { open_rec := open_rec_defs }.
 
 Notation open := (open_rec 0).
 
-(* Notation open_avar := (open_rec_avar 0). *)
-(* Notation open_typ := (open_rec_typ 0). *)
-(* Notation open_dec := (open_rec_dec 0). *)
-(* Notation open_decs := (open_rec_decs 0). *)
-(* Notation open_trm := (open_rec_trm 0). *)
-(* Notation open_val := (open_rec_val 0). *)
-(* Notation open_def := (open_rec_def 0). *)
-(* Notation open_defs := (open_rec_defs 0). *)
-
 
 Section FreeVariables.
 
@@ -324,7 +315,6 @@ Section FreeVariables.
 
 End FreeVariables.
 
-(* Hint Unfold fv_avar fv_typ fv_dec fv_decs fv_trm fv_val fv_def fv_defs. *)
 Instance FvAvar : HasFv avar := { fv := fv_avar }.
 Instance FvTyp : HasFv typ := { fv := fv_typ }. 
 Instance FvDec : HasFv dec := { fv := fv_dec }. 
@@ -538,6 +528,7 @@ Tactic Notation "ensure" "trm" constr(t) :=
   | defs => idtac
   end.
 
+(** The first kind of undecidability for typing. see if we can hit more. *)
 Tactic Notation "typing" "undec" "1" :=
   match goal with
   | [ |- _ ⊢ _ ⦂ _ ] => econstructor
