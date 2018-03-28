@@ -324,7 +324,7 @@ Section FreeVariables.
 
 End FreeVariables.
 
-Hint Unfold fv_avar fv_typ fv_dec fv_decs fv_trm fv_val fv_def fv_defs.
+(* Hint Unfold fv_avar fv_typ fv_dec fv_decs fv_trm fv_val fv_def fv_defs. *)
 Instance FvAvar : HasFv avar := { fv := fv_avar }.
 Instance FvTyp : HasFv typ := { fv := fv_typ }. 
 Instance FvDec : HasFv dec := { fv := fv_dec }. 
@@ -344,9 +344,8 @@ Notation sta := (list (atom * val)).
 
 Definition fv_values {T : Type} (f : T -> atoms)
            (l : list (atom * T)) : atoms :=
-  fold_left (fun a (b : (atom * T)) =>
-               let (_, t) := b
-               in a `union` f t) l {}.
+  fold_right (fun (b : (atom * T)) a =>
+               a `union` let (_, t) := b in f t) {} l.
 
 Instance FvEnv : HasFv env := { fv := fv_values fv }.
 Instance FvSta : HasFv sta := { fv := fv_values fv }.
@@ -462,7 +461,8 @@ Hint Constructors ty_trm ty_def ty_defs subtyp.
 Definition ty_equivalence G T U : Prop :=
   G ⊢ T <⦂ U <-> G ⊢ U <⦂ T.
 
-Notation "G ⊢ T ≊ U" := (ty_equivalence G T U)(at level 72) : type_scope.
+Notation "G ⊢ T ≊ U" :=
+  (ty_equivalence G T U)(at level 70, T at level 79) : type_scope.
 
 
 (** mutual inductive schemes *)
@@ -519,7 +519,9 @@ Ltac mut_ind :=
         (forall (G2 : env) (S U : typ) (_ : G2 ⊢ S <⦂ U), _) ] =>
     apply typing_mut
   end.
+
 Tactic Notation "mutual" "induction" := mut_ind.
+Tactic Notation "mutual" "induction*" := mutual induction; intros.
 
 Tactic Notation "ensure" "typ" constr(t) :=
   match type of t with
@@ -536,3 +538,13 @@ Tactic Notation "ensure" "trm" constr(t) :=
   | defs => idtac
   end.
 
+Tactic Notation "typing" "undec" "1" :=
+  match goal with
+  | [ |- _ ⊢ _ ⦂ _ ] => econstructor
+  | [ |- context[typ_all] ] => eapply subtyp_all
+  | [ |- context[dec_trm]] => eapply subtyp_fld
+  | [ |- context[dec_typ]] => eapply subtyp_typ
+  | [ |- context[ _ ⊢ _ <⦂ _ ⋅ _]] => eapply subtyp_sel1
+  | [ |- context[ _ ⊢ _ ⋅ _ <⦂ _]] => eapply subtyp_sel2
+  | _ => idtac
+  end.

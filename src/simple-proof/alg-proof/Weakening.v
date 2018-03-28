@@ -17,14 +17,12 @@ Section Weakening.
 
   (** this tactic massages the goal and then apply the
    * proper induction hypothesis in the context *)
-  Local Ltac ind_massage x :=
-    match goal with
-    | [ |- context[_ ~ _ ++ _ ++ _ ++ _] ] =>
-      simpl; pick_fresh_do x ltac:(fun L => instantiate (1 := L))
+  Local Ltac ind_massage :=
+    simpl; match goal with
     | [ |- context[_ :: _ ++ _ ++ _]] =>
-      pick_fresh_do x ltac:(fun L => instantiate (1 := L))
+      cofinite
     | _ =>
-      intros; simpl; eauto
+      intros; eauto
     end;
     match goal with
     | [ H : context[_ `notin` _ -> _] |- context[?tup :: ?G1 ++ ?G2 ++ ?G3] ] =>
@@ -37,23 +35,13 @@ Section Weakening.
     end.
 
   (** master tactic for this lemma *)
-  Local Ltac boom :=
-    let x := fresh "x" in ind_massage x; auto.
+  Local Ltac boom := ind_massage; auto.
   
   Lemma weaken_rules:
     weakening ty_trm /\ weakening ty_def /\
     weakening ty_defs /\ weakening subtyp.
   Proof.
-    mutual induction; intros; subst;
-      match goal with
-      | [ |- _ ⊢ _ ⦂ _ ] => econstructor; boom
-      | [ |- context[typ_all] ] => eapply subtyp_all
-      | [ |- context[dec_trm]] => eapply subtyp_fld
-      | [ |- context[dec_typ]] => eapply subtyp_typ
-      | [ |- context[ _ ⊢ _ <⦂ _ ⋅ _]] => eapply subtyp_sel1
-      | [ |- context[ _ ⊢ _ ⋅ _ <⦂ _]] => eapply subtyp_sel2
-      | _ => idtac
-      end; boom.
+    mutual induction*; subst; typing undec 1; boom.
   Qed.
 
 End Weakening.

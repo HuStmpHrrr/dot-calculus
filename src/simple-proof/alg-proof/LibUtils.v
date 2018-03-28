@@ -43,10 +43,10 @@ Ltac destruct_eq :=
     destruct (x == y); [subst |]
   end.
 
-Ltac equality :=
-  simpl in *; try congruence;
-  repeat destruct_eq; 
-  auto; try congruence.
+(* Ltac equality := *)
+(*   simpl in *; try congruence; *)
+(*   repeat destruct_eq;  *)
+(*   auto; try congruence. *)
 
 Ltac dep_destruct ev :=
   let E := fresh "E" in
@@ -56,25 +56,72 @@ Ltac pick_fresh_do name tac :=
   let L := gather_atoms in
   let L := beautify_fset L in
   let Fr := fresh "Fr" in
-  tac L; intros name Fr.
+  tac L; try intros name Fr.
 
-Ltac exec_conj' lem tac :=
-  match type of lem with
-  | _ /\ _ => exec_conj' constr:(proj1 lem) tac
-            || exec_conj' constr:(proj2 lem) tac
-  | _ => tac lem
+Ltac doit from num tac :=
+  let x := constr:(Init.Nat.leb from num) in
+  let y := eval simpl in x in
+  match y with
+  | true => tac from; doit constr:(S from) num tac
+  | false => idtac
   end.
+
+Ltac cofinite :=
+  let inst := ltac:(fun L =>
+                      instantiate (1 := L) ||
+                      instantiate (2 := L) ||
+                      instantiate (3 := L) ||
+                      instantiate (4 := L)) in
+  match goal with
+  | [  |- forall _, _ `notin` _ -> _ ] =>
+    let x := fresh "x" in
+    pick_fresh_do x inst
+  | [ H : ?x `notin` _ |- _ ] =>
+    gen x; cofinite
+  end.
+
+Ltac find_induction term :=
+  match goal with
+  | [ |- forall _ : ?T, _ ] =>
+    let H := fresh "H" in
+    intro H;
+    match type of H with
+    | context[term] =>
+      induction H
+    | _ => 
+      find_induction term
+    end
+  | [ |- _ ] =>
+    fail 1 "cannot find an induction target of " term
+  end.
+
+Tactic Notation "induction" "on" constr(term) :=
+  find_induction term.
+
+Ltac exvar T tac :=
+  let x := fresh "x" in
+  evar (x : T);
+  let x' := eval unfold x in x in
+  clear x; tac x'.
 
 Ltac exexec lem tac :=
   match type of lem with
+  | _ /\ _ => exexec constr:(proj1 lem) tac
+            || exexec constr:(proj2 lem) tac
   | forall _ : ?T, _ =>
-    let x := fresh "x"
-    in evar (x : T);
-       let x' := eval unfold x in x
-       in clear x; exexec constr:(lem x') tac
-  | _ /\ _ => exec_conj' lem tac
+    exvar T ltac:(fun x' =>
+      match type of (lem x') with
+      | context[_ /\ _] =>
+        exexec constr:(lem x') tac
+      end)
   | _ => tac lem
   end.
+
+Tactic Notation "exrewrite" constr(lem) :=
+  exexec lem ltac:(fun l => rewrite l).
+
+Tactic Notation "eexrewrite" constr(lem) :=
+  exexec lem ltac:(fun l => erewrite l).
 
 Tactic Notation "exapply" constr(lem) :=
   exexec lem ltac:(fun l => apply l).
@@ -88,18 +135,20 @@ Ltac try_discharge :=
 Ltac routine_impl prep tac :=
   intros;
   prep;
-  cbn in *; autounfold;
+  simpl in *; cbn in *; autounfold;
+  fold any not;
   repeat destruct_eq; destruct_all;
   repeat f_equal;
+  repeat split;
   tac.
 
 Tactic Notation "routine" "by" tactic(prep) := 
-  routine_impl prep ltac:(idtac; try_discharge; auto).
+  routine_impl prep ltac:(idtac; try assumption; try_discharge; auto).
 
 Tactic Notation "routine" := routine by ltac:(idtac).
 
 Tactic Notation "eroutine" "by" tactic(prep) := 
-  routine_impl prep ltac:(idtac; try_discharge; eauto).
+  routine_impl prep ltac:(idtac; try eassumption; try_discharge; eauto).
 
 Tactic Notation "eroutine" := eroutine by ltac:(idtac).
 

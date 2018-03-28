@@ -94,11 +94,11 @@ Section OpenFreshInj.
   Local Hint Resolve open_fresh_inj_avar.
 
   Local Ltac boom :=
-    eroutine by ltac:(idtac; 
-    match goal with
-    | [ H : _ = _ _ z ?t' |- _ ] =>
-      destruct t'; inversion H
-    end).
+    eroutine by 
+      (idtac; match goal with
+       | [ H : _ = _ _ z ?t' |- _ ] =>
+         destruct t'; inversion H
+       end).
   
   Lemma open_fresh_inj_typ_dec_decs :
     fresh_inj typ /\ fresh_inj dec /\ fresh_inj decs.
@@ -156,8 +156,6 @@ Section SubstOpenComm.
   Definition subst_fvar (z : var) : var :=
     if z == x then y else z.
 
-  Local Notation "z [y/x]" := (subst_fvar z) (at level 50).
-
   Variable u : var.
 
   Local Notation subst_open_comm T u :=
@@ -168,7 +166,7 @@ Section SubstOpenComm.
   Lemma subst_open_comm_avar : forall u,
       subst_open_comm avar u.
   Proof.
-    intros. destruct t; routine by ltac:(idtac; unfold subst_fvar).
+    intros. destruct t; routine by (idtac; unfold subst_fvar).
   Qed.
 
   Local Hint Resolve subst_open_comm_avar.
@@ -198,20 +196,13 @@ Section SubstIntro.
     (forall x u (t : T) (n : nat), x `notin` fv t ->
                             open_rec n u t = substi x u $ open_rec n x t).
   
-  Local Hint Resolve subst_open_comm_trm_val_def_defs.
+  Local Hint Extern 1 => exrewrite subst_fresh_typ_dec_decs.
 
-  Local Hint Extern 1 =>
-  exexec subst_fresh_typ_dec_decs ltac:(fun l => rewrite l).
-
-  Local Hint Extern 1 =>
-  exexec subst_fresh_trm_val_def_defs ltac:(fun l => rewrite l).
+  Local Hint Extern 1 => exrewrite subst_fresh_trm_val_def_defs.
 
   Local Ltac boom :=
-    routine by ltac:(
-                 exexec subst_open_comm_trm_val_def_defs ltac:(
-                   fun l => rewrite l) ||
-                 exexec subst_open_comm_typ_dec_decs ltac:(
-                   fun l => rewrite l)).
+    routine by (exrewrite (conj subst_open_comm_trm_val_def_defs
+                                subst_open_comm_typ_dec_decs)).
   
   Lemma subst_intro_trm : subst_intro trm.
   Proof. boom. Qed.
@@ -226,4 +217,3 @@ Section SubstIntro.
   Proof. boom. Qed.
 
 End SubstIntro.
-
