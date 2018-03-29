@@ -9,7 +9,7 @@ Section NarrowingPrep.
   match goal with
   | [ |- _ ⊢ _ <⦂ _ ] => idtac
   | [ |- _ ⊢ _ ⦂ _ ] => idtac
-  end; reassoc 2 with 0 by [auto].
+  end; reassoc 2 with 0.
   
   Local Hint Extern 1 => eexapply weaken_rules.
   
@@ -46,6 +46,6 @@ Section Narrowing.
       match goal with
       | [ H : _ ⪯ _ |- _ ] => pose proof (subenv_implies_uniq H)
       end;
-      eroutine by (try cofinite; try unfold wf_defs in *) at 6.
+      eroutine by (try unfold wf_defs in *) at 6.
   Qed.
 End Narrowing.

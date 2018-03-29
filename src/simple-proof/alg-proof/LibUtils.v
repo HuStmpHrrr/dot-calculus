@@ -347,6 +347,24 @@ Tactic Notation "einduce" constr(trm) :=
 Tactic Notation "einduce" constr(trm) "on" constr(ind) :=
   assert trm by (induction on ind; eroutine).
 
+Tactic Notation "reassoc" constr(n) "with" constr(c1) :=
+  reassoc n with c1 by [routine].
+
+Tactic Notation "reassoc" constr(n)
+       "with" constr(c1) constr(c2) :=
+    reassoc n with c1 c2 by [routine].
+
+Tactic Notation "reassoc" constr(n)
+       "with" constr(c1) constr(c2) constr(c3) :=
+    reassoc n with c1 c2 c3 by [routine].
+
+Tactic Notation "reassoc" constr(n)
+       "with" constr(c1) constr(c2) constr(c3) constr(c4) :=
+    reassoc n with c1 c2 c3 c4 by [routine].
+
+Tactic Notation "reassoc" constr(n)
+       "with" constr(c1) constr(c2) constr(c3) constr(c4) constr(c5) :=
+    reassoc n with c1 c2 c3 c4 c5 by [routine].
 
 (** PRIMITIVES *)
 

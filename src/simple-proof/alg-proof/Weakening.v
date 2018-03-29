@@ -26,7 +26,7 @@ Section Weakening.
     end;
     match goal with
     | [ H : context[_ `notin` _ -> _] |- _ ] =>
-      reassoc 4 with 2 by [ auto ];
+      reassoc 4 with 2;
       match type of H with
       | context[_ ++ _ ++ _] =>
           eapply H; simpl_env
