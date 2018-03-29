@@ -13,6 +13,8 @@ Notation "f $ x" := ((f) (x)) (at level 68, right associativity, only parsing).
 
 Notation "<[ e1 ; .. ; en ]>" := (cons e1 .. (cons en nil) .. ) (at level 39).
 
+(** Some Tactics *)
+
 Tactic Notation "gen" ident(x) := generalize dependent x.
 Tactic Notation "gen" ident(x) ident(y) := gen x; gen y.
 Tactic Notation "gen" ident(x) ident(y) ident(z) := gen x y; gen z.
@@ -54,12 +56,11 @@ Ltac pick_fresh_do name tac :=
   tac L; try intros name Fr.
 
 Ltac doit from num tac :=
-  let x := constr:(Init.Nat.leb from num) in
-  let y := eval simpl in x in
-  match y with
-  | true => tac from; doit constr:(S from) num tac
-  | false => idtac
+  match from with
+  | num =>  idtac
+  | _ => tac from; doit constr:(S from) num tac
   end.
+
 
 Ltac cofinite :=
   let inst := ltac:(fun L =>
@@ -74,6 +75,15 @@ Ltac cofinite :=
   | [ H : ?x `notin` _ |- _ ] =>
     gen x; cofinite
   end.
+
+Ltac solve_by_invert :=
+  match goal with
+  | [ H : ?T |- _ ] =>
+    match type of T with
+    | Prop => solve [inversion H]
+    end
+  end.
+
 
 Ltac find_induction term :=
   match goal with
@@ -124,11 +134,88 @@ Tactic Notation "exapply" constr(lem) :=
 Tactic Notation "eexapply" constr(lem) :=
   exexec lem ltac:(fun l => eapply l).
 
+
+(** Tactics for list reassociation. *)
+
+Ltac non_dec_list nat_list :=
+  let rec scan nlist p :=
+      match nlist with
+      | nil => idtac
+      | ?h :: ?t => match h with context[p] => scan t h end
+      end in
+  match nat_list with
+  | nil => idtac
+  | cons ?h ?t => scan t h
+  | _ => fail "the given list is not non-decreasing " nat_list
+  end.
+
+
+Ltac reassoc' lst assoc :=
+  match type of lst with
+  | list ?T =>
+    let rec partition l cnt target cb := (* cnt <= target *)
+        match cnt with
+        | target => cb l (@nil T)
+        | _ => match l with
+              | ?h :: ?t => partition t (S cnt) target ltac:(fun l' ed => cb l' (h :: ed))
+              end
+        end in
+    let rec scan l cnt ac cb :=
+        match ac with
+        | nil => cb (l :: nil)
+        | ?target :: ?ac' =>
+          partition l cnt target
+                    ltac:(fun l' p => scan l' target ac' ltac:(fun l' => cb (p :: l')))
+        end in
+    scan lst 0 assoc ltac:(fun l => l)
+  end.
+
+
+Ltac collect_list apps :=
+  let rec col ap cb := match ap with
+                       | ?l1 ++ ?l2 => col l2 ltac:(fun l => cb (l1 :: l))
+                       | _ => cb (ap :: nil)
+                       end in
+  col apps ltac:(fun l => l).
+
+
+Ltac map_list tac lst :=
+  match lst with
+  | ?h :: ?t => let h' := tac h in
+               let t' := map_list tac t in constr:(h' :: t')
+  | @nil ?T => constr:(@nil T)
+  end.
+
+Ltac app_lists lists :=
+  let rec appl l cb :=
+      match type of l with
+      | list (list ?T) => match l with
+                         | ?h :: nil => cb h
+                         | ?h :: ?t => appl t ltac:(fun l' => cb (h ++ l'))
+                         | _ => cb (@nil (list T))
+                         end
+      end in
+  let rec col l :=
+      match type of l with
+      | list (list (list ?T)) =>
+        match l with
+        | ?h :: ?t => let x := appl h ltac:(fun l => l) in
+                     let y := col t in constr:(x :: y)
+        | _ => constr:(@nil (list T))
+        end
+      end in
+  let rec x := col lists in appl x ltac:(fun l => l).
+
 Ltac try_discharge :=
   try congruence.
 
+(** The skeleton of decision procesure.
+ * unfortunately, the undecidability of this language is too complex
+ * to handle by tactics that solves purely logical problems. 
+ * TODO: see where autorewrite can be applied. *)
 Ltac routine_impl prep tac :=
   intros; try cofinite;
+  try solve_by_invert;
   prep;
   simpl in *; cbn in *; subst; autounfold;
   fold any not;
@@ -192,6 +279,22 @@ Tactic Notation "eroutine" "hinted" tactic(tac) :=
   eroutine hinted ltac:(idtac; tac) at 5.
 
 Tactic Notation "eroutine" := eroutine by ltac:(idtac).
+
+(** try to prove a trm by routine, and then place it into context. *)
+Tactic Notation "induce" constr(trm) :=
+  assert trm by routine.
+
+(** try to prove a trm by induction on ind *)
+Tactic Notation "induce" constr(trm) "on" constr(ind) :=
+  assert trm by (induction on ind; routine).
+
+
+Tactic Notation "einduce" constr(trm) :=
+  assert trm by eroutine.
+
+Tactic Notation "einduce" constr(trm) "on" constr(ind) :=
+  assert trm by (induction on ind; eroutine).
+
 
 (** PRIMITIVES *)
 

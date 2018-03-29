@@ -46,7 +46,6 @@ Section Narrowing.
       match goal with
       | [ H : _ ⪯ _ |- _ ] => pose proof (subenv_implies_uniq H)
       end;
-      eroutine by (idtac; try cofinite; try unfold wf_defs in *).
-      all:eauto 6.
+      eroutine by (try cofinite; try unfold wf_defs in *) at 6.
   Qed.
 End Narrowing.
