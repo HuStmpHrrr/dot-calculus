@@ -25,11 +25,10 @@ Section Weakening.
       intros; eauto
     end;
     match goal with
-    | [ H : context[_ `notin` _ -> _] |- context[?tup :: ?G1 ++ ?G2 ++ ?G3] ] =>
+    | [ H : context[_ `notin` _ -> _] |- _ ] =>
+      reassoc 4 with 2 by [ auto ];
       match type of H with
       | context[_ ++ _ ++ _] =>
-        replace (tup :: G1 ++ G2 ++ G3)
-          with (([tup] ++ G1) ++ G2 ++ G3) by auto;
           eapply H; simpl_env
       end
     end.

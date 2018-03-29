@@ -7,9 +7,9 @@ Section NarrowingPrep.
 
   Local Hint Extern 1 =>
   match goal with
-  | [ |- _ ((?x, ?T) :: ?G) _ _ ] =>
-    replace ((x, T) :: G) with (nil ++ x ~ T ++ G) by auto
-  end.
+  | [ |- _ ⊢ _ <⦂ _ ] => idtac
+  | [ |- _ ⊢ _ ⦂ _ ] => idtac
+  end; reassoc 2 with 0 by [auto].
   
   Local Hint Extern 1 => eexapply weaken_rules.
   

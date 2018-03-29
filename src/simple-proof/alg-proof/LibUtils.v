@@ -58,9 +58,8 @@ Ltac pick_fresh_do name tac :=
 Ltac doit from num tac :=
   match from with
   | num =>  idtac
-  | _ => tac from; doit constr:(S from) num tac
+  | _ => tac from; doit (S from) num tac
   end.
-
 
 Ltac cofinite :=
   let inst := ltac:(fun L =>
@@ -149,8 +148,7 @@ Ltac non_dec_list nat_list :=
   | _ => fail "the given list is not non-decreasing " nat_list
   end.
 
-
-Ltac reassoc' lst assoc :=
+Ltac reassoc_impl lst assoc :=
   match type of lst with
   | list ?T =>
     let rec partition l cnt target cb := (* cnt <= target *)
@@ -170,15 +168,6 @@ Ltac reassoc' lst assoc :=
     scan lst 0 assoc ltac:(fun l => l)
   end.
 
-
-Ltac collect_list apps :=
-  let rec col ap cb := match ap with
-                       | ?l1 ++ ?l2 => col l2 ltac:(fun l => cb (l1 :: l))
-                       | _ => cb (ap :: nil)
-                       end in
-  col apps ltac:(fun l => l).
-
-
 Ltac map_list tac lst :=
   match lst with
   | ?h :: ?t => let h' := tac h in
@@ -187,25 +176,89 @@ Ltac map_list tac lst :=
   end.
 
 Ltac app_lists lists :=
-  let rec appl l cb :=
+  let rec appl l :=
       match type of l with
       | list (list ?T) => match l with
-                         | ?h :: nil => cb h
-                         | ?h :: ?t => appl t ltac:(fun l' => cb (h ++ l'))
-                         | _ => cb (@nil (list T))
+                         | ?h :: nil => h
+                         | ?h :: ?t => let y := appl t in constr:(h ++ y)
+                         | nil => constr:(@nil T)
                          end
       end in
   let rec col l :=
       match type of l with
       | list (list (list ?T)) =>
         match l with
-        | ?h :: ?t => let x := appl h ltac:(fun l => l) in
+        | ?h :: ?t => let x := appl h in
                      let y := col t in constr:(x :: y)
-        | _ => constr:(@nil (list T))
+        | nil => constr:(@nil (list T))
         end
       end in
-  let rec x := col lists in appl x ltac:(fun l => l).
+  let x := col lists in appl x.
 
+Ltac collect_list apps n :=
+  let rec col ap m := match constr:((ap, m)) with
+                      | (?l1 ++ ?l2, S ?o) =>
+                        let r := col l2 o in constr:(l1 :: r)
+                      | (_ ++ _, 0) => fail 1
+                      | (_, S _) => fail 1
+                      | (_, 0) => constr:(ap :: nil)
+                      end in
+  col apps n.
+
+(** here comes the tactic that is going to reassociate the lists.
+ * it does following things:
+ * 1. simplify environment into canonical form;
+ * 2. find out a list that is the result of appending precisely N lists together;
+ * 3. reassociate them according to ASSOC;
+ * 4. prove the new one and the old one are the same by calling TAC.
+ *)
+Ltac doreassoc n assoc tac :=
+  let rec all_at_most l :=
+      match l with
+      | ?h :: ?t => match n with context[h] => all_at_most t end
+      | nil => idtac
+      | _ => fail "the list has element greater than" n
+      end in
+  all_at_most assoc; non_dec_list assoc; (* input sanity checking *)
+  match n with
+  | S ?n' => 
+    simpl_env;
+    match goal with
+    | [  |- context[?l ++ ?ls] ] =>
+      let colists := collect_list (l ++ ls) n' in
+      let reac := reassoc_impl colists assoc in
+      let applist := app_lists reac in
+      replace (l ++ ls) with applist by tac
+    | _ => fail "unable to prove association holds"
+    end
+  end.
+
+
+Tactic Notation "reassoc" constr(n) "with" constr(c1) "by" "[" tactic(tac) "]" :=
+  doreassoc n (c1 :: nil) ltac:(tac).
+
+Tactic Notation "reassoc" constr(n)
+       "with" constr(c1) constr(c2)
+       "by" "[" tactic(tac) "]" :=
+  doreassoc n (c1 :: c2 :: nil) ltac:(tac).
+
+Tactic Notation "reassoc" constr(n)
+       "with" constr(c1) constr(c2) constr(c3)
+       "by" "[" tactic(tac) "]" :=
+  doreassoc n (c1 :: c2 :: c3 :: nil) ltac:(tac).
+
+Tactic Notation "reassoc" constr(n)
+       "with" constr(c1) constr(c2) constr(c3) constr(c4)
+       "by" "[" tactic(tac) "]" :=
+  doreassoc n (c1 :: c2 :: c3 :: c4 :: nil) ltac:(tac).
+
+Tactic Notation "reassoc" constr(n)
+       "with" constr(c1) constr(c2) constr(c3) constr(c4) constr(c5)
+       "by" "[" tactic(tac) "]" :=
+  doreassoc n (c1 :: c2 :: c3 :: c4 :: c5 :: nil) ltac:(tac).
+
+(* List Reassociation Ends Here. *)
+  
 Ltac try_discharge :=
   try congruence.
 
@@ -287,7 +340,6 @@ Tactic Notation "induce" constr(trm) :=
 (** try to prove a trm by induction on ind *)
 Tactic Notation "induce" constr(trm) "on" constr(ind) :=
   assert trm by (induction on ind; routine).
-
 
 Tactic Notation "einduce" constr(trm) :=
   assert trm by eroutine.
