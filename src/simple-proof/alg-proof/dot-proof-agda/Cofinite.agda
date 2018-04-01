@@ -7,66 +7,17 @@ open import Data.List
 open import Data.Empty
 open import Data.Unit using (⊤ ; tt)
 
-open import Prelude.Function
-open import Prelude.Product
+open import Data.Product
+open import Function
 
 open import Relation.Nullary
 
 open import Relation.Binary.Core using (_⇒_ ; Decidable)
 open import Relation.Binary.PropositionalEquality
 
-open import Data.List.Properties
 open import Data.Nat.Properties
 
--- some list concepts
-
-module _ {a} {A : Set a} where
-  not-empty : List A → Set
-  not-empty [] = ⊥
-  not-empty (_ ∷ _) = ⊤
-
-  not-empty-relax : (l1 l l2 : List A) → not-empty l → not-empty $ l1 ++ l ++ l2
-  not-empty-relax [] [] l2 ()
-  not-empty-relax [] (x ∷ l) l2 ev = tt
-  not-empty-relax (x ∷ l1) l l2 ev = tt
-
-  infix 4 _∈_
-  data _∈_ (e : A) : List A → Set a where
-    skip : ∀ {l} h → e ∈ l → e ∈ h ∷ l
-    found : ∀ l → e ∈ e ∷ l
-
-  dec-∈ : ∀ ⦃ dec : Decidable {A = A} _≡_ ⦄ → Decidable _∈_
-  dec-∈ e [] = no (λ ())
-  dec-∈ ⦃ dec ⦄ e (x ∷ l) with dec e x
-  dec-∈ ⦃ dec ⦄ e (x ∷ l) | yes p rewrite p = yes (found l)
-  dec-∈ ⦃ dec ⦄ e (x ∷ l) | no ¬p with dec-∈ ⦃ dec ⦄ e l
-  dec-∈ ⦃ dec ⦄ e (x ∷ l) | no ¬p | yes p = yes (skip x p)
-  dec-∈ ⦃ dec ⦄ e (x ∷ l) | no ¬p | no ¬p₁ = no λ {
-      (skip .x t) → ¬p₁ t
-    ; (found .l)  → ¬p refl
-    }
-
-  ∈⇒not-empty : {e : A} {l : List A} → e ∈ l → not-empty l
-  ∈⇒not-empty (skip h c) = tt
-  ∈⇒not-empty (found l) = tt
-
-  infix 4 _∉_
-  _∉_ : A → List A → Set a
-  e ∉ l = ¬ (e ∈ l)
-
-
-NeList : ∀ {a} (A : Set a) → Set a
-NeList A = Σ (List A) not-empty
-
-module _ {a} {A : Set} where
-  infix 4 _∈ne_
-  data _∈ne_ (e : A) : NeList A → Set a where
-    wrap : ∀ {l} ne → e ∈ l → e ∈ne (l , ne)
-  
-  dec-∈ne : ∀ ⦃ dec : Decidable {A = A} _≡_ ⦄ → Decidable _∈ne_
-  dec-∈ne ⦃ dec ⦄ e (l , ne) with dec-∈ ⦃ dec ⦄ e l
-  dec-∈ne {{dec = dec}} e (l , ne) | yes p = yes (wrap ne p)
-  dec-∈ne {{dec = dec}} e (l , ne) | no ¬p = no λ { (wrap .ne c) → ¬p c }
+open import ListUtils
 
 
 -- let's start with something easy from natural numbers

@@ -18,13 +18,9 @@ Section NarrowingPrep.
       G' ⪯ G ->
       binds x T G ->
       G' ⊢ trm_var x ⦂ T.
-  Proof.
-    induction on subenv; auto; intros;
-    match goal with
-    | [ H : binds _ _ _ |- _ ] =>
-      apply binds_cons_1 in H; destruct_all; subst; eapply ty_sub
-    end;
-    eauto.
+  Proof. 
+    induction on subenv; routine.
+    eapply ty_sub; eauto.
   Qed.
   
 End NarrowingPrep.

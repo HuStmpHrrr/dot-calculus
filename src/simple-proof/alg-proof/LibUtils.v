@@ -102,6 +102,32 @@ Ltac find_induction term :=
 Tactic Notation "induction" "on" constr(term) :=
   find_induction term.
 
+(** https://sympa.inria.fr/sympa/arc/coq-club/2018-03/msg00087.html *)
+Ltac fold_not_under_forall :=
+   repeat
+     match goal with
+     | H : forall n : ?T, @?x n |- _ =>
+       match x with
+       | fun n : T => ?b =>
+         let not_n := fresh in
+         let b''' :=
+             constr:(
+               fun n : T =>
+                 match b with
+                 | not_n =>
+                   ltac:(let b' := (eval cbv delta [not_n] in not_n) in
+                         match b' with
+                         | context C[?P -> False] =>
+                           let b'' := context C[~ P] in
+                           exact b''
+                         end)
+                 end) in
+         let tH' := eval cbn beta in (forall n : T, b''' n) in
+             let tH := type of H in
+             change tH with tH' in H
+       end
+     end.
+
 Ltac exvar T tac :=
   let x := fresh "x" in
   evar (x : T);
@@ -168,11 +194,11 @@ Ltac reassoc_impl lst assoc :=
     scan lst 0 assoc ltac:(fun l => l)
   end.
 
-Ltac map_list tac lst :=
+Ltac map_list T tac lst :=
   match lst with
   | ?h :: ?t => let h' := tac h in
                let t' := map_list tac t in constr:(h' :: t')
-  | @nil ?T => constr:(@nil T)
+  | nil => constr:(@nil T)
   end.
 
 Ltac app_lists lists :=
@@ -270,11 +296,16 @@ Ltac routine_impl prep tac :=
   intros; try cofinite;
   try solve_by_invert;
   prep;
-  simpl in *; cbn in *; subst; autounfold;
-  fold any not;
+  simpl in *; cbn in *; subst;
+  autounfold in *;
+  fold any not; fold_not_under_forall; (* we don't want to unfold not *)
   repeat destruct_eq; destruct_all;
   repeat f_equal;
-  repeat split;
+  repeat (split; intros);
+  repeat match goal with
+         | [ H : (_, _) = _ |- _ ] => inversion H; clear H
+         | [ H : _ = (_, _) |- _ ] => inversion H; clear H
+         end; try congruence; subst;
   tac.
 
 Tactic Notation "routine" "by" tactic(prep)
@@ -373,7 +404,7 @@ Definition not_empty {A : Type} (l : list A) : Prop :=
   | nil => False
   | cons _ _ => True
   end.
-Hint Unfold not_empty.
+(* Hint Unfold not_empty. *)
 
 Ltac invert_not_empty_impl H x xs :=
   match type of H with
@@ -449,7 +480,7 @@ Section Containment.
   Lemma contains_means_not_empty :
     forall l, l `contains` k ↦ v -> not_empty l.
   Proof.
-    intros. destruct X; auto.
+    intros. destruct X; routine.
   Qed.
 
   Definition containment_relaxation :
