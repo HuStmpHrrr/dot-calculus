@@ -23,7 +23,7 @@ open import ListUtils
 record Var : Set where
   constructor var_
   field
-    --| there are countably infinite natural numbers,
+    -- |there are countably infinite natural numbers,
     -- therefore it can represent countably infinite variables.
     sig : Nat
 
@@ -100,11 +100,11 @@ Decs = List⁺ LDec
 
 infix 7 _·_ Π[_]_ μ[_]
 data Typ where
-  ⊤ : Typ
-  ⊥ : Typ
-  _·_ : (x : Avar) → (T : TypLabel) → Typ
+  ⊤     : Typ
+  ⊥     : Typ
+  _·_   : (x : Avar) → (T : TypLabel) → Typ
   Π[_]_ : (T : Typ) → (U : Typ) → Typ
-  μ[_] : (DS : Decs) → Typ
+  μ[_]  : (DS : Decs) → Typ
 
 
 data Trm : Set
@@ -134,10 +134,10 @@ Defs = List⁺ LDef
 
 infix 7 var_ val_ _!$!_ llet_iin_
 data Trm where
-  var_ : Avar → Trm
-  val_ : Val → Trm
-  _·_ : (x : Avar) → (t : TrmLabel) → Trm
-  _!$!_ : (s : Avar) → (t : Avar) → Trm
+  var_      : Avar → Trm
+  val_      : Val → Trm
+  _·_       : (x : Avar) → (t : TrmLabel) → Trm
+  _!$!_     : (s : Avar) → (t : Avar) → Trm
   llet_iin_ : (s : Trm) → (t : Trm) → Trm
 
 data Val where
@@ -156,8 +156,8 @@ infix 10 _⟨0↦_⟩
 instance
   OpenAvar : CanOpen Avar
   _⟨_↦_⟩ {{OpenAvar}} (b x) n v with x ≟ n
-  ... | yes p = f v
-  ... | no ¬p = b n
+  ... | yes p                   = f v
+  ... | no ¬p                   = b n
   _⟨_↦_⟩ {{OpenAvar}} (f x) n v = f x
 
 
@@ -169,23 +169,23 @@ instance
   OpenDecList : CanOpen (List LDec)
   OpenDecs    : CanOpen Decs
 
-  _⟨_↦_⟩ {{OpenTyp}} ⊤ n v = ⊤
-  _⟨_↦_⟩ {{OpenTyp}} ⊥ n v = ⊥
-  _⟨_↦_⟩ {{OpenTyp}} (x · T) n v = x ⟨ n ↦ v ⟩ · T
-  _⟨_↦_⟩ {{OpenTyp}} (Π[ T ] U) n v = Π[ T ⟨ n ↦ v ⟩ ] U ⟨ suc n ↦ v ⟩
-  _⟨_↦_⟩ {{OpenTyp}} μ[ DS ] n v = μ[ DS ⟨ suc n ↦ v ⟩ ]
+  _⟨_↦_⟩ {{OpenTyp}} ⊤ n v                = ⊤
+  _⟨_↦_⟩ {{OpenTyp}} ⊥ n v                = ⊥
+  _⟨_↦_⟩ {{OpenTyp}} (x · T) n v          = x ⟨ n ↦ v ⟩ · T
+  _⟨_↦_⟩ {{OpenTyp}} (Π[ T ] U) n v       = Π[ T ⟨ n ↦ v ⟩ ] U ⟨ suc n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenTyp}} μ[ DS ] n v          = μ[ DS ⟨ suc n ↦ v ⟩ ]
   
-  _⟨_↦_⟩ {{OpenDecTyp}} (lb ⋯ ub) n v = lb ⟨ n ↦ v ⟩ ⋯ ub ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenDecTyp}} (lb ⋯ ub) n v     = lb ⟨ n ↦ v ⟩ ⋯ ub ⟨ n ↦ v ⟩
   
-  _⟨_↦_⟩ {{OpenDecTrm}} (decTrm Ttr) n v = decTrm $ Ttr ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenDecTrm}} (decTrm Ttr) n v  = decTrm $ Ttr ⟨ n ↦ v ⟩
 
   _⟨_↦_⟩ {{OpenLDec}} (trm x , proj₂) n v = trm x , proj₂ ⟨ n ↦ v ⟩
   _⟨_↦_⟩ {{OpenLDec}} (typ x , proj₂) n v = typ x , proj₂ ⟨ n ↦ v ⟩
 
-  _⟨_↦_⟩ {{OpenDecList}} [] n v = []
-  _⟨_↦_⟩ {{OpenDecList}} (x ∷ DS) n v = x ⟨ n ↦ v ⟩ ∷ DS ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenDecList}} [] n v           = []
+  _⟨_↦_⟩ {{OpenDecList}} (x ∷ DS) n v     = x ⟨ n ↦ v ⟩ ∷ DS ⟨ n ↦ v ⟩
 
-  _⟨_↦_⟩ {{OpenDecs}} (hd ∷ tl) n v = hd ⟨ n ↦ v ⟩ ∷ tl ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenDecs}} (hd ∷ tl) n v       = hd ⟨ n ↦ v ⟩ ∷ tl ⟨ n ↦ v ⟩
 
 
 infix 10 _⟨0↦_⟩ᵗ
@@ -203,26 +203,26 @@ instance
   OpenDefList : CanOpen (List LDef)
   OpenDefs    : CanOpen Defs
 
-  _⟨_↦_⟩ {{OpenTrm}} (var x) n v = var x ⟨ n ↦ v ⟩
-  _⟨_↦_⟩ {{OpenTrm}} (val x) n v = val x ⟨ n ↦ v ⟩
-  _⟨_↦_⟩ {{OpenTrm}} (x · x₁) n v = x ⟨ n ↦ v ⟩ · x₁
-  _⟨_↦_⟩ {{OpenTrm}} (x !$! x₁) n v = x ⟨ n ↦ v ⟩ !$! x₁ ⟨ n ↦ v ⟩
-  _⟨_↦_⟩ {{OpenTrm}} (llet t iin t₁) n v = llet t ⟨ n ↦ v ⟩ iin t₁ ⟨ suc n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenTrm}} (var x) n v          = var x ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenTrm}} (val x) n v          = val x ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenTrm}} (x · x₁) n v         = x ⟨ n ↦ v ⟩ · x₁
+  _⟨_↦_⟩ {{OpenTrm}} (x !$! x₁) n v       = x ⟨ n ↦ v ⟩ !$! x₁ ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenTrm}} (llet t iin t₁) n v  = llet t ⟨ n ↦ v ⟩ iin t₁ ⟨ suc n ↦ v ⟩
 
-  _⟨_↦_⟩ {{OpenVal}} ν[ DS ]⟨ ds ⟩ n v = ν[ DS ⟨ n ↦ v ⟩ ]⟨ ds ⟨ n ↦ v ⟩ ⟩
-  _⟨_↦_⟩ {{OpenVal}} Λ[ T ]⟨ t ⟩ n v = Λ[ T ⟨ n ↦ v ⟩ ]⟨ t ⟨ n ↦ v ⟩ ⟩
+  _⟨_↦_⟩ {{OpenVal}} ν[ DS ]⟨ ds ⟩ n v    = ν[ DS ⟨ n ↦ v ⟩ ]⟨ ds ⟨ n ↦ v ⟩ ⟩
+  _⟨_↦_⟩ {{OpenVal}} Λ[ T ]⟨ t ⟩ n v      = Λ[ T ⟨ n ↦ v ⟩ ]⟨ t ⟨ n ↦ v ⟩ ⟩
   
-  _⟨_↦_⟩ {{OpenDefTyp}} (defTyp Ty) n v = defTyp $ Ty ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenDefTyp}} (defTyp Ty) n v   = defTyp $ Ty ⟨ n ↦ v ⟩
   
-  _⟨_↦_⟩ {{OpenDefTrm}} (defTrm tr) n v = defTrm $ tr ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenDefTrm}} (defTrm tr) n v   = defTrm $ tr ⟨ n ↦ v ⟩
   
   _⟨_↦_⟩ {{OpenLDef}} (trm x , proj₂) n v = trm x , proj₂ ⟨ n ↦ v ⟩
   _⟨_↦_⟩ {{OpenLDef}} (typ x , proj₂) n v = typ x , proj₂ ⟨ n ↦ v ⟩
   
-  _⟨_↦_⟩ {{OpenDefList}} [] n v = []
-  _⟨_↦_⟩ {{OpenDefList}} (x ∷ df) n v = x ⟨ n ↦ v ⟩ ∷ df ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenDefList}} [] n v           = []
+  _⟨_↦_⟩ {{OpenDefList}} (x ∷ df) n v     = x ⟨ n ↦ v ⟩ ∷ df ⟨ n ↦ v ⟩
   
-  _⟨_↦_⟩ {{OpenDefs}} (hd ∷ tl) n v = hd ⟨ n ↦ v ⟩ ∷ tl ⟨ n ↦ v ⟩
+  _⟨_↦_⟩ {{OpenDefs}} (hd ∷ tl) n v       = hd ⟨ n ↦ v ⟩ ∷ tl ⟨ n ↦ v ⟩
   
 
 infix 10 _⟨0↦_⟩ᵛ
@@ -245,23 +245,23 @@ instance
   FvDecList : HasFv (List LDec)
   FvDecs    : HasFv Decs
 
-  fv {{FvTyp}} ⊤ = []
-  fv {{FvTyp}} ⊥ = []
-  fv {{FvTyp}} (x · T) = fv x
-  fv {{FvTyp}} (Π[ T ] U) = fv T ++ fv U
-  fv {{FvTyp}} μ[ DS ] = fv DS
+  fv {{FvTyp}} ⊤                = []
+  fv {{FvTyp}} ⊥                = []
+  fv {{FvTyp}} (x · T)          = fv x
+  fv {{FvTyp}} (Π[ T ] U)       = fv T ++ fv U
+  fv {{FvTyp}} μ[ DS ]          = fv DS
   
-  fv {{FvDecTyp}} (lb₁ ⋯ ub₁) = fv lb₁ ++ fv ub₁
+  fv {{FvDecTyp}} (lb₁ ⋯ ub₁)   = fv lb₁ ++ fv ub₁
   
-  fv {{FvDecTrm}} (decTrm Ttr) = fv Ttr
+  fv {{FvDecTrm}} (decTrm Ttr)  = fv Ttr
   
   fv {{FvLDec}} (trm x , proj₂) = fv proj₂
   fv {{FvLDec}} (typ x , proj₂) = fv proj₂
   
-  fv {{FvDecList}} [] = []
-  fv {{FvDecList}} (x ∷ t) = fv x ++ fv t
+  fv {{FvDecList}} []           = []
+  fv {{FvDecList}} (x ∷ t)      = fv x ++ fv t
   
-  fv {{FvDecs}} (hd ∷ tl) = fv hd ++ fv tl
+  fv {{FvDecs}} (hd ∷ tl)       = fv hd ++ fv tl
 
 
 instance
@@ -273,23 +273,23 @@ instance
   FvDefList : HasFv (List LDef)
   FvDefs    : HasFv Defs
 
-  fv {{FvTrm}} (var x) = fv x
-  fv {{FvTrm}} (val x) = fv x
-  fv {{FvTrm}} (x · _) = fv x
-  fv {{FvTrm}} (x !$! x₁) = fv x ++ fv x₁
-  fv {{FvTrm}} (llet t iin t₁) = fv t ++ fv t₁
+  fv {{FvTrm}} (var x)          = fv x
+  fv {{FvTrm}} (val x)          = fv x
+  fv {{FvTrm}} (x · _)          = fv x
+  fv {{FvTrm}} (x !$! x₁)       = fv x ++ fv x₁
+  fv {{FvTrm}} (llet t iin t₁)  = fv t ++ fv t₁
   
-  fv {{FvVal}} ν[ DS ]⟨ ds ⟩ = fv DS ++ fv ds
-  fv {{FvVal}} Λ[ T ]⟨ t ⟩ = fv T ++ fv t
+  fv {{FvVal}} ν[ DS ]⟨ ds ⟩    = fv DS ++ fv ds
+  fv {{FvVal}} Λ[ T ]⟨ t ⟩      = fv T ++ fv t
   
-  fv {{FvDefTyp}} (defTyp Ty) = fv Ty
-  fv {{FvDefTrm}} (defTrm tr) = fv tr
+  fv {{FvDefTyp}} (defTyp Ty)   = fv Ty
+  fv {{FvDefTrm}} (defTrm tr)   = fv tr
   
   fv {{FvLDef}} (trm x , proj₄) = fv proj₄
   fv {{FvLDef}} (typ x , proj₄) = fv proj₄
   
-  fv {{FvDefList}} [] = []
-  fv {{FvDefList}} (x ∷ t) = fv x ++ fv t
+  fv {{FvDefList}} []           = []
+  fv {{FvDefList}} (x ∷ t)      = fv x ++ fv t
   
   fv {{FvDefs}} (head₁ ∷ tail₁) = fv head₁ ++ fv tail₁
 
@@ -328,22 +328,22 @@ instance
   SubstDecList : CanSubst (List LDec)
   SubstDecs    : CanSubst Decs
 
-  _[_/_] {{SubstTyp}} ⊤ a x = ⊤
-  _[_/_] {{SubstTyp}} ⊥ a x = ⊥
-  _[_/_] {{SubstTyp}} (x₁ · T) a x = x₁ [ a / x ] · T
-  _[_/_] {{SubstTyp}} (Π[ T ] U) a x = Π[ T [ a / x ] ] U [ a / x ]
-  _[_/_] {{SubstTyp}} μ[ DS ] a x = μ[ DS [ a / x ] ]
+  _[_/_] {{SubstTyp}} ⊤ a x                 = ⊤
+  _[_/_] {{SubstTyp}} ⊥ a x                 = ⊥
+  _[_/_] {{SubstTyp}} (x₁ · T) a x          = x₁ [ a / x ] · T
+  _[_/_] {{SubstTyp}} (Π[ T ] U) a x        = Π[ T [ a / x ] ] U [ a / x ]
+  _[_/_] {{SubstTyp}} μ[ DS ] a x           = μ[ DS [ a / x ] ]
   
-  _[_/_] {{SubstDecTyp}} (lb₁ ⋯ ub₁) a x = lb₁ [ a / x ] ⋯ ub₁ [ a / x ]
-  _[_/_] {{SubstDecTrm}} (decTrm Ttr) a x = decTrm $ Ttr [ a / x ]
+  _[_/_] {{SubstDecTyp}} (lb₁ ⋯ ub₁) a x    = lb₁ [ a / x ] ⋯ ub₁ [ a / x ]
+  _[_/_] {{SubstDecTrm}} (decTrm Ttr) a x   = decTrm $ Ttr [ a / x ]
     
   _[_/_] {{SubstLDec}} (trm x₁ , proj₄) a x = trm x₁ , proj₄ [ a / x ]
   _[_/_] {{SubstLDec}} (typ x₁ , proj₄) a x = typ x₁ , proj₄ [ a / x ]
   
-  _[_/_] {{SubstDecList}} [] a x = []
-  _[_/_] {{SubstDecList}} (x₁ ∷ t) a x = x₁ [ a / x ] ∷ t [ a / x ]
+  _[_/_] {{SubstDecList}} [] a x            = []
+  _[_/_] {{SubstDecList}} (x₁ ∷ t) a x      = x₁ [ a / x ] ∷ t [ a / x ]
   
-  _[_/_] {{SubstDecs}} (head₁ ∷ tail₁) a x = head₁ [ a / x ] ∷ tail₁ [ a / x ]
+  _[_/_] {{SubstDecs}} (head₁ ∷ tail₁) a x  = head₁ [ a / x ] ∷ tail₁ [ a / x ]
   
 
 instance
@@ -355,26 +355,26 @@ instance
   SubstDefList : CanSubst (List LDef)
   SubstDefs    : CanSubst Defs
 
-  _[_/_] {{SubstTrm}} (var x₁) a x = var x₁ [ a / x ]
-  _[_/_] {{SubstTrm}} (val x₁) a x = val x₁ [ a / x ]
-  _[_/_] {{SubstTrm}} (x₁ · t) a x = x₁ [ a / x ] · t
-  _[_/_] {{SubstTrm}} (t !$! s) a x = t [ a / x ] !$! s [ a / x ]
-  _[_/_] {{SubstTrm}} (llet t iin t₁) a x = llet t [ a / x ] iin t₁ [ a / x ]
+  _[_/_] {{SubstTrm}} (var x₁) a x          = var x₁ [ a / x ]
+  _[_/_] {{SubstTrm}} (val x₁) a x          = val x₁ [ a / x ]
+  _[_/_] {{SubstTrm}} (x₁ · t) a x          = x₁ [ a / x ] · t
+  _[_/_] {{SubstTrm}} (t !$! s) a x         = t [ a / x ] !$! s [ a / x ]
+  _[_/_] {{SubstTrm}} (llet t iin t₁) a x   = llet t [ a / x ] iin t₁ [ a / x ]
 
-  _[_/_] {{SubstVal}} ν[ DS ]⟨ ds ⟩ a x = ν[ DS [ a / x ] ]⟨ ds [ a / x ] ⟩
-  _[_/_] {{SubstVal}} Λ[ T ]⟨ t ⟩ a x = Λ[ T [ a / x ] ]⟨ t [ a / x ] ⟩
+  _[_/_] {{SubstVal}} ν[ DS ]⟨ ds ⟩ a x     = ν[ DS [ a / x ] ]⟨ ds [ a / x ] ⟩
+  _[_/_] {{SubstVal}} Λ[ T ]⟨ t ⟩ a x       = Λ[ T [ a / x ] ]⟨ t [ a / x ] ⟩
   
-  _[_/_] {{SubstDefTyp}} (defTyp Ty) a x = defTyp $ Ty [ a / x ]
+  _[_/_] {{SubstDefTyp}} (defTyp Ty) a x    = defTyp $ Ty [ a / x ]
   
-  _[_/_] {{SubstDefTrm}} (defTrm tr) a x = defTrm $ tr [ a / x ]
+  _[_/_] {{SubstDefTrm}} (defTrm tr) a x    = defTrm $ tr [ a / x ]
   
   _[_/_] {{SubstLDef}} (trm x₁ , proj₂) a x = trm x₁ , proj₂ [ a / x ]
   _[_/_] {{SubstLDef}} (typ x₁ , proj₂) a x = typ x₁ , proj₂ [ a / x ]
   
-  _[_/_] {{SubstDefList}} [] a x = []
-  _[_/_] {{SubstDefList}} (x₁ ∷ df) a x = x₁ [ a / x ] ∷ df [ a / x ]
+  _[_/_] {{SubstDefList}} [] a x            = []
+  _[_/_] {{SubstDefList}} (x₁ ∷ df) a x     = x₁ [ a / x ] ∷ df [ a / x ]
   
-  _[_/_] {{SubstDefs}} (hd ∷ tl) a x = hd [ a / x ] ∷ tl [ a / x ] 
+  _[_/_] {{SubstDefs}} (hd ∷ tl) a x        = hd [ a / x ] ∷ tl [ a / x ] 
 
 infix 6 _~_
 _~_ : ∀ {a b}{A : Set a}{B : A → Set b} → (x : A) → B x → List (Σ A B)
@@ -428,18 +428,37 @@ data _⊢[_::_]⁻ where
 
 
 data _⊢_<⦂_ where
-  <⦂-⊤     : ∀ {Γ T} → Γ ⊢ T <⦂ ⊤
-  ⊥-<⦂     : ∀ {Γ T} → Γ ⊢ ⊥ <⦂ T
-  <⦂-refl  : ∀ {Γ T} → Γ ⊢ T <⦂ T
-  <⦂-trans : ∀ {Γ S T U} → Γ ⊢ S <⦂ T → Γ ⊢ T <⦂ U → Γ ⊢ S <⦂ U
-  <⦂-Π     : ∀ {L Γ S₁ T₁ S₂ T₂} →
-               Γ ⊢ S₂ <⦂ S₁ →
-               (∀ x → x ∉ L → x ~ S₂ ++ Γ ⊢ T₁ ⟨0↦ x ⟩ <⦂ T₂ ⟨0↦ x ⟩) →
-               Γ ⊢ Π[ S₁ ] T₁ <⦂ Π[ S₂ ] T₂
-  
-  <⦂-μ-trm : ∀ {L Γ a T DS₁ DS₂ U} →
-               (∀ x → x ∉ L →
-                  x ~ μ[ DS₁ ++⁺ (trm a , decTrm T) ∷ DS₂ ] ++ Γ ⊢ T <⦂ U) →
-               Γ ⊢ μ[ DS₁ ++⁺ (trm a , decTrm T) ∷ DS₂ ]
-                 <⦂ μ[ DS₁ ++⁺ (trm a , decTrm U) ∷ DS₂ ]
-               
+  <⦂-⊤       : ∀ {Γ T} → Γ ⊢ T <⦂ ⊤
+  ⊥-<⦂       : ∀ {Γ T} → Γ ⊢ ⊥ <⦂ T
+  <⦂-refl    : ∀ {Γ T} → Γ ⊢ T <⦂ T
+  <⦂-trans   : ∀ {Γ S T U} → Γ ⊢ S <⦂ T → Γ ⊢ T <⦂ U → Γ ⊢ S <⦂ U
+  <⦂-Π       : ∀ {L Γ S₁ T₁ S₂ T₂} →
+                 Γ ⊢ S₂ <⦂ S₁ →
+                 (∀ x → x ∉ L → x ~ S₂ ++ Γ ⊢ T₁ ⟨0↦ x ⟩ <⦂ T₂ ⟨0↦ x ⟩) →
+                 Γ ⊢ Π[ S₁ ] T₁ <⦂ Π[ S₂ ] T₂
+  <⦂-μ-trm   : ∀ {L Γ a T DS₁ DS₂ U} →
+                 (∀ x → x ∉ L →
+                    x ~ μ[ DS₁ ++⁺′ (trm a , decTrm T) ∷ DS₂ ] ⟨0↦ x ⟩ᵗ ++ Γ ⊢ T <⦂ U) →
+                 Γ ⊢ μ[ DS₁ ++⁺′ (trm a , decTrm T) ∷ DS₂ ]
+                   <⦂ μ[ DS₁ ++⁺′ (trm a , decTrm U) ∷ DS₂ ]
+  <⦂-μ-typ   : ∀ {L Γ A DS₁ DS₂ S₁ T₁ S₂ T₂} →
+                 (∀ x → x ∉ L →
+                    x ~ μ[ DS₁ ++⁺′ (typ A , S₁ ⋯ T₁) ∷ DS₂ ] ⟨0↦ x ⟩ᵗ ++ Γ ⊢ S₂ <⦂ S₁) →
+                 (∀ x → x ∉ L →
+                    x ~ μ[ DS₁ ++⁺′ (typ A , S₁ ⋯ T₁) ∷ DS₂ ] ⟨0↦ x ⟩ᵗ ++ Γ ⊢ T₁ <⦂ T₂) →
+                 Γ ⊢ μ[ DS₁ ++⁺′ (typ A , S₁ ⋯ T₁) ∷ DS₂ ]
+                   <⦂ μ[ DS₁ ++⁺′ (typ A , S₂ ⋯ T₂) ∷ DS₂ ]
+  <⦂-μ-drop₁ : ∀ {Γ DS₁ DS₂} → Γ ⊢ μ[ DS₁ ⁺++⁺ DS₂ ] <⦂ μ[ DS₂ ]
+  <⦂-μ-drop₂ : ∀ {Γ DS₁ DS₂} → Γ ⊢ μ[ DS₁ ⁺++⁺ DS₂ ] <⦂ μ[ DS₁ ]
+  <⦂-μ-merge : ∀ {Γ DS DS₁ DS₂} →
+                 Γ ⊢ μ[ DS ] <⦂ μ[ DS₁ ] →
+                 Γ ⊢ μ[ DS ] <⦂ μ[ DS₂ ] →
+                 Γ ⊢ μ[ DS ] <⦂ μ[ DS₁ ⁺++⁺ DS₂ ]
+  <⦂-μ-sel₁  : ∀ {Γ x A S T DS} →
+                 Γ ⊢ var x ⦂ μ[ DS ] →
+                 typ A ↦ S ⋯ T ∈⁺ DS →
+                 Γ ⊢ S <⦂ x · A
+  <⦂-μ-sel₂  : ∀ {Γ x A S T DS} →
+                 Γ ⊢ var x ⦂ μ[ DS ] →
+                 typ A ↦ S ⋯ T ∈⁺ DS →
+                 Γ ⊢ x · A <⦂ T
