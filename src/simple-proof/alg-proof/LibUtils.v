@@ -20,6 +20,19 @@ Tactic Notation "gen" ident(x) ident(y) := gen x; gen y.
 Tactic Notation "gen" ident(x) ident(y) ident(z) := gen x y; gen z.
 Tactic Notation "gen" ident(x) ident(y) ident(z) ident(w) := gen x y z; gen w.
 
+Tactic Notation "invert" hyp(H1) := inversion H1.
+Tactic Notation "invert" hyp(H1) hyp(H2) := invert H1; invert H2.
+Tactic Notation "invert" hyp(H1) hyp(H2) hyp(H3) := invert H1 H2; invert H3.
+Tactic Notation "invert" hyp(H1) hyp(H2) hyp(H3) hyp(H4) := invert H1 H2 H3; invert H4.
+
+Tactic Notation "invert" "on" constr(trm) :=
+  match goal with
+  | [ H : context[trm] |- _ ] => invert H
+  end.
+
+Tactic Notation "invert" "on" constr(trm1) constr(trm2) :=
+  invert trm1; invert trm2.
+
 
 Ltac destruct_all :=
   repeat match goal with
@@ -288,6 +301,33 @@ Tactic Notation "reassoc" constr(n)
 Ltac try_discharge :=
   try congruence.
 
+Ltac careful_unfold :=
+  autounfold in *;
+  fold any not; fold_not_under_forall. (* we don't want to unfold not *)
+
+Ltac simplify :=
+  simpl in *; cbn in *; subst;
+  careful_unfold.
+
+(** there occasionally will be cheap goals that can be discharged
+ * by direct application.
+ *)
+Ltac direct_app :=
+  match goal with
+  | [ H: context[_ /\ ?G] |- ?G ] => apply H
+  | [ H: context[?G /\ _] |- ?G ] => apply H    
+  end;
+  repeat destruct_eq; destruct_all.
+
+
+(** These tactics are for further modifications such that routine tactic can
+ * be extended with further concepts that are not visible in this module.
+ *
+ * TODO: is there a better way to do injection? *)
+Ltac routine_subtac1 := idtac.
+
+Ltac routine_subtac2 := idtac.
+
 (** The skeleton of decision procesure.
  * unfortunately, the undecidability of this language is too complex
  * to handle by tactics that solves purely logical problems. 
@@ -296,16 +336,18 @@ Ltac routine_impl prep tac :=
   intros; try cofinite;
   try solve_by_invert;
   prep;
-  simpl in *; cbn in *; subst;
-  autounfold in *;
-  fold any not; fold_not_under_forall; (* we don't want to unfold not *)
+  simplify;
   repeat destruct_eq; destruct_all;
-  repeat f_equal;
-  repeat (split; intros);
   repeat match goal with
-         | [ H : (_, _) = _ |- _ ] => inversion H; clear H
          | [ H : _ = (_, _) |- _ ] => inversion H; clear H
+         | [ H : (_, _) = _ |- _ ] => inversion H; clear H
          end; try congruence; subst;
+  simplify;
+  repeat f_equal;
+  try direct_app;
+  repeat (split; autounfold; simpl; cbn; intros);
+  routine_subtac1;
+  routine_subtac2;
   tac.
 
 Tactic Notation "routine" "by" tactic(prep)
@@ -624,13 +666,21 @@ Module Label <: EqDecidableType.
   Include HasUsualEq <+ UsualIsEq <+ UsualIsEqOrig.
 End Label.
 
-Module LabelSetImpl : FSetExtra.WSfun Label :=
-  FSetExtra.Make Label.
+Module LabelSetImpl <: FSetExtra.WSfun Label := FSetExtra.Make Label.
 
 Module LabelAssocList := AssocList.Make Label LabelSetImpl.
 
-Notation lbinds := contains.
+Notation lbinds := LabelAssocList.binds.
 Notation luniq := LabelAssocList.uniq.
 Notation lmap := LabelAssocList.map.
+Notation ldom := LabelAssocList.dom.
 
+Ltac ldestruct_uniq := LabelAssocList.destruct_uniq.
+Ltac lsolve_uniq := LabelAssocList.solve_uniq.
 
+Ltac luniq_routine :=
+  try ldestruct_uniq;
+  try match goal with [ |- luniq _ ] => timeout 2 lsolve_uniq end.
+
+                         
+Ltac routine_subtac1 ::= luniq_routine.

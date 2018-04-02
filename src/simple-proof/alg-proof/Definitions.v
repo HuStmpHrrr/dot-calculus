@@ -41,33 +41,34 @@ decs : Set :=
 Hint Constructors typ dec decs.
 
 
+Fixpoint decs_to_list (DS : decs) :=
+  match DS with
+  | decs_nil => nil
+  | decs_cons l d DS' => (l, d) :: decs_to_list DS'
+  end.
+
+Fixpoint decs_from_list (l : list (label * dec)) :=
+  match l with
+  | nil => decs_nil
+  | cons (l, d) l' => decs_cons l d $ decs_from_list l'
+  end.
+
+Fixpoint decs_append (DS1 : decs) (DS2 : decs) : decs :=
+  match DS1 with
+  | decs_nil => DS2
+  | decs_cons l D DS1' => decs_cons l D $ decs_append DS1' DS2
+  end.
+
 Instance DecsList : ListIso (label * dec) decs :=
   {
-    to_list := fix to_list (ds : decs) :=
-      match ds with
-      | decs_nil => nil
-      | decs_cons l d ds' => (l, d) :: to_list ds'
-      end;
-    
-    from_list := fix from_list (l : list (label * dec)) :=
-      match l with
-      | nil => decs_nil
-      | cons (l, d) l' => decs_cons l d $ from_list l'
-      end;
-
-    append := fix app (l1 : decs) (l2 : decs) : decs :=
-      match l1 with
-      | decs_nil => l2
-      | decs_cons l d l1' => decs_cons l d $ app l1' l2
-      end
+    to_list := decs_to_list;
+    from_list := decs_from_list;
+    append := decs_append
   }.
 Proof.
-  1-2: induction l; routine.
-  induction l1; routine.
+  all:induction on decs || induction on list; routine.
 Qed.
 
-Definition decs_to_list (ds : decs) := to_list ds.
-Hint Unfold decs_to_list.
 Coercion decs_to_list : decs >-> list.
 
 Notation "⊤" := typ_top.
@@ -91,7 +92,7 @@ Inductive wf_lab_dec : label * dec -> Prop :=
 | wf_ld_trm : forall x T, wf_lab_dec (label_trm x ∷ T).
 Hint Constructors wf_lab_dec.
 
-Definition wf_decs l := not_empty l /\ list_pred wf_lab_dec l.
+Definition wf_decs (l : decs) := not_empty l /\ list_pred wf_lab_dec l.
 Hint Unfold wf_decs.
 
 Inductive trm : Set :=
@@ -115,33 +116,34 @@ defs : Set :=
 
 Hint Constructors trm val def defs.
 
+Fixpoint defs_to_list (DS : defs) :=
+  match DS with
+  | defs_nil => nil
+  | defs_cons l d DS' => (l, d) :: defs_to_list DS'
+  end.
+
+Fixpoint defs_from_list (l : list (label * def)) :=
+  match l with
+  | nil => defs_nil
+  | cons (l, d) l' => defs_cons l d $ defs_from_list l'
+  end.
+
+Fixpoint defs_append (DS1 : defs) (DS2 : defs) : defs :=
+  match DS1 with
+  | defs_nil => DS2
+  | defs_cons l D DS1' => defs_cons l D $ defs_append DS1' DS2
+  end.
+
 Instance DefsList : ListIso (label * def) defs :=
   {
-    to_list := fix to_list (ds : defs) :=
-      match ds with
-      | defs_nil => nil
-      | defs_cons l d ds' => (l, d) :: to_list ds'
-      end;
-    
-    from_list := fix from_list (l : list (label * def)) :=
-      match l with
-      | nil => defs_nil
-      | cons (l, d) l' => defs_cons l d $ from_list l'
-      end;
-
-    append := fix app (l1 : defs) (l2 : defs) : defs :=
-      match l1 with
-      | defs_nil => l2
-      | defs_cons l d l1' => defs_cons l d $ app l1' l2
-      end
+    to_list := defs_to_list;
+    from_list := defs_from_list;
+    append := defs_append
   }.
 Proof.
-  1-2: induction l; routine.
-  induction l1; routine.
+  all:induction on defs || induction on list; routine.
 Qed.
 
-Definition defs_to_list (dfs: defs) := to_list dfs.
-Hint Unfold defs_to_list.
 Coercion defs_to_list : defs >-> list.
 
 Notation "'lett' x 'inn' y" := (trm_let x y) (at level 40).
@@ -158,7 +160,7 @@ Inductive wf_lab_def : label * def -> Prop :=
 | wf_lf_trm : forall x t, wf_lab_def (label_trm x ⩴ t).
 Hint Constructors wf_lab_def.
 
-Definition wf_defs l := luniq l /\ not_empty l /\ list_pred wf_lab_def l.
+Definition wf_defs (l : defs) := luniq l /\ not_empty l /\ list_pred wf_lab_def l.
 Hint Unfold wf_defs.
 
 
@@ -407,20 +409,25 @@ subtyp : env -> typ -> typ -> Prop :=
     (forall x, x `notin` L ->
        x ~ S2 ++ G ⊢ open x T1 <⦂ open x T2) ->
     G ⊢ typ_all S1 T1 <⦂ typ_all S2 T2
-| subtyp_fld : forall L G a T (DS : decs) U
-                 (ev : lbinds (label_trm a) (dec_trm T) DS),
+| subtyp_fld : forall L G a T (DS1 DS2 : decs) U,
     (forall x, x `notin` L ->
-          x ~ open_typ_to_context x (μ{ DS }) ++ G ⊢ T <⦂ U) ->
-    G ⊢ μ{ DS } <⦂ μ{ from_list
-                        $ replace_value (dec_trm U) ev } (* DS[a := U] *)
-| subtyp_typ : forall L G A (DS : decs) S1 T1 S2 T2
-                 (ev : lbinds (label_typ A) (dec_typ S1 T1) DS),
+          x ~ open_typ_to_context x
+            (μ{ append DS1 $ decs_cons (label_trm a) (dec_trm T) DS2 }) ++
+            G ⊢ T <⦂ U) ->
+    G ⊢ μ{ append DS1 $ decs_cons (label_trm a) (dec_trm T) DS2 }
+      <⦂ μ{ append DS1 $ decs_cons (label_trm a) (dec_trm U) DS2 } (* DS[a := U] *)
+| subtyp_typ : forall L G A (DS1 DS2 : decs) S1 T1 S2 T2,
     (forall x, x `notin` L ->
-          x ~ open_typ_to_context x (μ{ DS }) ++ G ⊢ S2 <⦂ S1) ->
+          x ~ open_typ_to_context x
+            (μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }) ++
+            G ⊢ S2 <⦂ S1) ->
     (forall y, y `notin` L ->
-          y ~ open_typ_to_context y (μ{ DS }) ++ G ⊢ T1 <⦂ T2) ->
-    G ⊢ μ{ DS } <⦂ μ{ from_list
-                        $ replace_value (dec_typ S2 T2) ev } (* DS[A := S2 .. T2] *)
+          y ~ open_typ_to_context y
+            (μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }) ++
+            G ⊢ T1 <⦂ T2) ->
+    G ⊢ μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }
+      <⦂ μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S2 T2) DS2 }
+      (* DS[A := S2 .. T2] *)
 | subtyp_drop1 : forall G (DS1 : decs) (DS2 : decs),
     not_empty DS1 ->
     not_empty DS2 ->
