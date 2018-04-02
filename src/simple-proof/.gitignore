@@ -3,3 +3,11 @@
 *.dpd
 Makefile.coq
 _CoqProject
+*.agdai
+*.aux
+*.blg
+*.log
+*.out
+*.bbl
+*.bcf
+*.run.xml

@@ -1,0 +1,122 @@
+\documentclass{article}
+\usepackage[a4paper,
+total={6.5in, 10in},
+voffset=5px]{geometry}
+\usepackage{fancyhdr}
+\usepackage[fleqn]{amsmath}
+\usepackage{titling}
+\usepackage[shortlabels]{enumitem}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage[bb=boondox]{mathalfa}
+\usepackage{ifthen}
+\usepackage{amsfonts}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{indentfirst}
+\usepackage{tikz}
+\usepackage{tkz-graph}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{MnSymbol}
+\usepackage{ifthen}
+\usepackage{listings}
+\usepackage{bussproofs}
+\usepackage{lineno}
+\usepackage{multicol}
+\usepackage{biblatex}
+
+\bibliography{f2}
+
+\linenumbers
+
+\renewcommand\linenumberfont{\normalfont\small\sffamily}
+\fontfamily{qcr}\selectfont
+
+\usetikzlibrary{positioning}
+
+\hypersetup{
+  colorlinks=true,
+  allcolors=blue,
+}
+
+% \pagestyle{fancy}
+
+\algnewcommand\algorithmicinput{\textbf{Input:}}
+\algnewcommand\Input{\item[\algorithmicinput]}
+\algnewcommand\algorithmicoutput{\textbf{Output:}}
+\algnewcommand\Output{\item[\algorithmicoutput]}
+\algnewcommand\Ret[1]{\State \textbf{return }$#1$ }
+\algnewcommand\Clarif{\item[\textbf{Clarification: }]}
+\algnewcommand\Assign[2]{\State $#1 = #2$}
+
+\algnewcommand \Foreach[3]{\For{$#1 \textbf{ in } #2$}
+  #3
+  \EndFor
+}
+
+\algnewcommand \IIf[2]{\If{$#1$}
+  #2
+  \EndIf}
+
+\algnewcommand \IIfE[3]{\If{$#1$}
+  #2
+  \Else
+  #3
+  \EndIf}
+
+\algnewcommand \Func[3]{\Function{#1}{#2}
+  #3
+  \EndFunction}
+
+\algnewcommand \Whl[2]{
+  \While{$#1$}
+  #2
+  \EndWhile
+}
+
+\algrenewcommand\textproc{}
+\newcommand{\LineComment}[1]{\\/*\textit{#1}\hfill*/}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\small\color{codegray},
+    stringstyle=\color{codepurple},
+    breaklines=true,                 
+    captionpos=b,                    
+    numbers=left,                    
+    numbersep=5pt,
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4
+}
+\lstset{style=mystyle}
+
+\newcommand{\axiom}[1]{\AxiomC{$#1$}}
+\newcommand{\unary}[1]{\UnaryInfC{$#1$}}
+\newcommand{\binary}[1]{\BinaryInfC{$#1$}}
+\newcommand{\trinary}[1]{\TrinaryInfC{$#1$}}
+\newcommand{\quaternary}[1]{\QuaternaryInfC{$#1$}}
+\newcommand{\rlabel}[1]{\RightLabel{#1}}
+
+\DeclareFieldFormat{url}{\ifhyperref{\href{#1}{Link.}}{\url{#1}}}
+\nocite{*}
+
+\theoremstyle{definition}
+\newtheorem{question}{Question}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+
+\begin{document}
+\pagenumbering{arabic}
+\end{document}
