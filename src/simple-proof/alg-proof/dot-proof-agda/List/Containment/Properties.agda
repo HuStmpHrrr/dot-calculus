@@ -9,6 +9,10 @@ open import Data.Product
 open import Function using (_$_ ; _∘_)
 open import Data.Empty using (⊥)
 
+open import Relation.Binary.Core
+open import Relation.Binary
+open import Relation.Binary.PropositionalEquality
+
 -- a pure fact
 ⊎⇒duality : ∀ {a b} {X Y : Set a} {B : Set b} →
               (X ⊎ Y → B) → (X → B) × (Y → B)
@@ -79,4 +83,45 @@ module _ {a} {A : Set a} where
   ∉⋃ : ∀ {x l L} → x ∉ ⋃ L → l ∈ L → x ∉ l
   ∉⋃ x∉⋃L l∈L x∈l = x∉⋃L $ ∈⋃ x∈l l∈L
 
+  ∈⊆-combine : ∀ {x : A} {l₁ l₂} → x ∈ l₁ → l₁ ⊆ l₂ → x ∈ l₂
+  ∈⊆-combine () (∅ l)
+  ∈⊆-combine (skip .h x∈l₁) (grow h h∈l l₁⊆l₂) = ∈⊆-combine x∈l₁ l₁⊆l₂
+  ∈⊆-combine (found l) (grow h h∈l l₁⊆l₂)      = h∈l
 
+
+  ⊆-growr : ∀ {x : A} {l l′} → l ⊆ l′ → l ⊆ x ∷ l′
+  ⊆-growr {x} {.[]} (∅ l)                  = ∅ (x ∷ l)
+  ⊆-growr {x} {.(h ∷ _)} (grow h h∈l l⊆l′) = grow h (skip x h∈l) (⊆-growr l⊆l′)
+
+  ⊆-relaxˡ : ∀ {l : List A} {l₁ l₂} → l ⊆ l₂ → l ⊆ l₁ ++ l₂
+  ⊆-relaxˡ {l₁ = []} l⊆l₂     = l⊆l₂
+  ⊆-relaxˡ {l₁ = x ∷ l₁} l⊆l₂ = ⊆-growr $ ⊆-relaxˡ {l₁ = l₁} l⊆l₂
+
+  ⊆-relaxʳ : ∀ {l : List A} {l₁ l₂} → l ⊆ l₁ → l ⊆ l₁ ++ l₂
+  ⊆-relaxʳ {l₂ = l₂} (∅ l)             = ∅ (l ++ l₂)
+  ⊆-relaxʳ {l₂ = l₂} (grow h h∈l l⊆l₁) = grow h (∈-relaxʳ l₂ h∈l) $ ⊆-relaxʳ l⊆l₁
+
+  ⊆-reflexive : _≡_ ⇒ (_⊆_ {a}  {A})
+  ⊆-reflexive {[]} refl    = ∅ []
+  ⊆-reflexive {x ∷ i} refl = grow x (found i) (⊆-growr $ ⊆-reflexive refl)
+
+  ⊆-refl : Reflexive (_⊆_ {a} {A})
+  ⊆-refl = ⊆-reflexive refl
+
+  ⊆-trans : Transitive (_⊆_ {a} {A})
+  ⊆-trans {.[]} {.l} {k} (∅ l) j⊆k        = ∅ k
+  ⊆-trans {.(h ∷ _)} (grow h h∈l i⊆j) j⊆k = grow h (∈⊆-combine h∈l j⊆k) (⊆-trans i⊆j j⊆k)
+  
+  ⊆-isPreorder : IsPreorder _≡_ _⊆_
+  ⊆-isPreorder = record
+    { isEquivalence = isEquivalence
+    ; reflexive     = ⊆-reflexive
+    ; trans         = ⊆-trans
+    }
+  
+  ⊆-preorder : Preorder _ _ _
+  ⊆-preorder = record
+    { isPreorder = ⊆-isPreorder
+    }
+
+  

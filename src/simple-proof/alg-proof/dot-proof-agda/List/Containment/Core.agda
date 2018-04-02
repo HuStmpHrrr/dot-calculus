@@ -63,6 +63,12 @@ module _ {a} {A : Set a} where
     empty : uniq []
     grow  : ∀ {h l} → h ∉ l → uniq l → uniq $ h ∷ l
 
+    -- subset relation
+  infix 4 _⊆_
+  data _⊆_ : List A → List A → Set a where
+    ∅    : ∀ l → [] ⊆ l
+    grow : ∀ h {t l} → (h∈l : h ∈ l) → (t⊆l : t ⊆ l) → h ∷ t ⊆ l
+
 
 module _ {a b}{A : Set a}{B : A → Set b} where
   private
