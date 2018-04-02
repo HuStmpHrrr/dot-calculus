@@ -125,3 +125,49 @@ module _ {a} {A : Set a} where
     }
 
   
+
+-- we are ready to build reasoning toolset
+module ContainmentReasoning {a} {A : Set a} {Cons : Set a → Set a}
+  (one : ∀ {B : Set a} → B → Cons B)
+  (_≺_ : ∀ {B : Set a} → B → Cons B → Set a)
+  (one-compat : ∀ {B : Set a} (x : B) → x ≺ one x)
+  {flatten : ∀ {B : Set a} → Cons (Cons B) → Cons B}
+  (flatten-compat : ∀ {B : Set a} {x : B} {l L} → x ≺ l → l ≺ L → x ≺ flatten L) where
+
+  open import Data.Nat renaming (ℕ to Nat)
+  open import Relation.Binary.PropositionalEquality
+
+  NestedCons : Nat → (B : Set a) → Set a
+  NestedCons zero B = B
+  NestedCons (suc n) B = NestedCons n (Cons B)
+
+  infix  3 _∎
+  infixr 2 _≺⟨_⟩_
+  infix  1 begin_
+
+  flatten-n : ∀ {B} n → NestedCons n B → Cons B
+  flatten-n zero e   = one e
+  flatten-n {B} (suc n) e = flatten $ flatten-n n e
+
+  -- |this is fairly tricky: we express the data type in GADT
+  -- in order to learn about the hierarchy of types in containment
+  -- reasoning.
+  data _RelatesBy_To_ {B : Set a} : B → (n : Nat) → NestedCons n B → Set a where
+    lvl0 : ∀ {x} → x RelatesBy 0 To x
+    lvl+ : ∀ {x : B} {n l L} →
+             (x≺l : x ≺ l) →
+             (cont : l RelatesBy n To L) →
+             x RelatesBy suc n To L
+    
+  establish : ∀ {B : Set a} {x : B} {n L} → x RelatesBy n To L → x ≺ flatten-n n L
+  establish {x = x} lvl0  = one-compat x
+  establish (lvl+ x≺l ev) = flatten-compat x≺l (establish ev)
+
+  begin_ : ∀ {B : Set a} {x : B} {n L} → x RelatesBy n To L → x ≺ flatten-n n L
+  begin_ = establish
+
+  _≺⟨_⟩_ : ∀ (x : A) {l n L} → x ≺ l → l RelatesBy n To L → x RelatesBy suc n To L
+  x ≺⟨ x≺l ⟩ ev = lvl+ x≺l ev
+
+  _∎ : (x : A) → x RelatesBy 0 To x
+  _∎ x = lvl0
