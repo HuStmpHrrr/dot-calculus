@@ -668,6 +668,8 @@ End Label.
 
 Module LabelSetImpl <: FSetExtra.WSfun Label := FSetExtra.Make Label.
 
+Module LabelSetNotin := FSetWeakNotin.Notin_fun Label LabelSetImpl.
+
 Module LabelAssocList := AssocList.Make Label LabelSetImpl.
 
 Notation lbinds := LabelAssocList.binds.
@@ -675,12 +677,50 @@ Notation luniq := LabelAssocList.uniq.
 Notation lmap := LabelAssocList.map.
 Notation ldom := LabelAssocList.dom.
 
+Notation lIn := LabelSetImpl.In.
+Notation "x `lnotin` E" := (~ lIn x E) (at level 70).
+
+Hint Constructors luniq.
+
+(* taken code from metalib to make life easier. *)
+
+Notation luniq_one := LabelAssocList.uniq_one_1.
+Notation luniq_cons := LabelAssocList.uniq_cons_3.
+Notation luniq_app := LabelAssocList.uniq_app_4.
+Notation luniq_map := LabelAssocList.uniq_map_2.
+
+Notation lbinds_one := LabelAssocList.binds_one_3.
+Notation lbinds_cons := LabelAssocList.binds_cons_3.
+Notation lbinds_app_l := LabelAssocList.binds_app_2.
+Notation lbinds_app_r := LabelAssocList.binds_app_3.
+Notation lbinds_map := LabelAssocList.binds_map_2.
+
+Notation lnotin_empty := LabelSetNotin.notin_empty_1.
+Notation lnotin_add := LabelSetNotin.notin_add_3.
+Notation lnotin_singleton := LabelSetNotin.notin_singleton_2.
+Notation lnotin_union := LabelSetNotin.notin_union_3.
+
+Ltac solve_label_notin :=
+  try eassumption;
+  autorewrite with rewr_dom in *;
+  LabelSetNotin.destruct_notin;
+  repeat first [ apply lnotin_union
+               | apply lnotin_add
+               | apply lnotin_singleton
+               | apply lnotin_empty
+               ];
+  try tauto.
+
+Hint Extern 1 (_ `notin` _) =>
+match goal with
+| [ |- ?l `notin` _ ] => match type of l with label => solve_label_notin end
+end.
+
 Ltac ldestruct_uniq := LabelAssocList.destruct_uniq.
 Ltac lsolve_uniq := LabelAssocList.solve_uniq.
 
 Ltac luniq_routine :=
   try ldestruct_uniq;
   try match goal with [ |- luniq _ ] => timeout 2 lsolve_uniq end.
-
                          
 Ltac routine_subtac1 ::= luniq_routine.
