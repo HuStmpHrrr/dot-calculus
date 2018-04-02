@@ -1,4 +1,4 @@
-module ListUtils where
+module List.Containment.Core where
 
 open import Data.List
 open import Data.List.NonEmpty
@@ -36,13 +36,13 @@ module _ {a} {A : Set a} where
     skip  : ∀ {l} h → e ∈ l → e ∈ h ∷ l
     found : ∀ l → e ∈ e ∷ l
 
-  dec-∈ : ∀ {dec : Decidable {A = A} _≡_} → Decidable _∈_
-  dec-∈ e [] = no (λ ())
-  dec-∈ {dec} e (x ∷ l) with dec e x
-  dec-∈ {dec} e (x ∷ l) | yes p rewrite p = yes (found l)
-  dec-∈ {dec} e (x ∷ l) | no ¬p with dec-∈ {dec} e l
-  dec-∈ {dec} e (x ∷ l) | no ¬p | yes p   = yes (skip x p)
-  dec-∈ {dec} e (x ∷ l) | no ¬p | no ¬p₁  = no λ {
+  ∈-dec : ∀ {dec : Decidable {A = A} _≡_} → Decidable _∈_
+  ∈-dec e [] = no (λ ())
+  ∈-dec {dec} e (x ∷ l) with dec e x
+  ∈-dec {dec} e (x ∷ l) | yes p rewrite p = yes (found l)
+  ∈-dec {dec} e (x ∷ l) | no ¬p with ∈-dec {dec} e l
+  ∈-dec {dec} e (x ∷ l) | no ¬p | yes p   = yes (skip x p)
+  ∈-dec {dec} e (x ∷ l) | no ¬p | no ¬p₁  = no λ {
       (skip .x t) → ¬p₁ t
     ; (found .l)  → ¬p refl
     }
@@ -94,13 +94,6 @@ NeList : ∀ {a} (A : Set a) → Set a
 NeList A = Σ (List A) not-empty
 
 
-mapVal : ∀ {a b}{A : Set a}{B : A → Set b}{C : A → Set b} →
-         (f : (x : A) → B x → C x) →
-         List (Σ A B) → List (Σ A C)
-mapVal f [] = []
-mapVal f ((proj₁ , proj₂) ∷ l) = (proj₁ , f proj₁ proj₂) ∷ mapVal f l
-
-
 -- about nonempty lists
 module _ {a} {A : Set a} where
 
@@ -129,10 +122,10 @@ module _ {a} {A : Set a} where
   e ∉⁺ l = ¬ (e ∈⁺ l)
 
 
-  dec-∈⁺ : ∀ {dec : Decidable {A = A} _≡_} → Decidable _∈⁺_
-  dec-∈⁺ {dec} e l with dec-∈ {dec = dec} e $ toList l
-  dec-∈⁺ {dec} e l | yes p = yes $ wrap p
-  dec-∈⁺ {dec} e l | no ¬p = no λ { (wrap ev) → ¬p ev }
+  ∈⁺-dec : ∀ {dec : Decidable {A = A} _≡_} → Decidable _∈⁺_
+  ∈⁺-dec {dec} e l with ∈-dec {dec = dec} e $ toList l
+  ∈⁺-dec {dec} e l | yes p = yes $ wrap p
+  ∈⁺-dec {dec} e l | no ¬p = no λ { (wrap ev) → ¬p ev }
   
   ∈⁺⇒∈ : ∀ {e l} → e ∈⁺ l → e ∈ toList l
   ∈⁺⇒∈ (wrap ev) = ev
