@@ -1,9 +1,9 @@
-module List.Containment.Properties where
+module Data.List.Containment.Properties where
 
 open import Data.List
 open import Data.List.Properties
 
-open import List.Containment.Core
+open import Data.List.Containment.Core
 open import Data.Sum
 open import Data.Product
 open import Function using (_$_ ; _∘_)

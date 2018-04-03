@@ -18,7 +18,7 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary renaming (Dec to D)
 open import Level renaming (suc to succ)
 
-open import List.Containment
+open import Data.List.Containment
 
 record Var : Set where
   constructor var_

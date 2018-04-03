@@ -1,4 +1,4 @@
-module List.Containment.Core where
+module Data.List.Containment.Core where
 
 open import Data.List
 open import Data.List.NonEmpty

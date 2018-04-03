@@ -17,7 +17,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Data.Nat.Properties
 
-open import List.Containment
+open import Data.List.Containment
 
 
 -- let's start with something easy from natural numbers

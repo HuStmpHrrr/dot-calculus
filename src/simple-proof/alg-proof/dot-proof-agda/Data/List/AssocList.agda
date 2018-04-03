@@ -1,4 +1,4 @@
-module List.AssocList where
+module Data.List.AssocList where
 
 open import Data.List
 open import Data.Product
