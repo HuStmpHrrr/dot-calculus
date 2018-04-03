@@ -25,6 +25,14 @@ Tactic Notation "invert" hyp(H1) hyp(H2) := invert H1; invert H2.
 Tactic Notation "invert" hyp(H1) hyp(H2) hyp(H3) := invert H1 H2; invert H3.
 Tactic Notation "invert" hyp(H1) hyp(H2) hyp(H3) hyp(H4) := invert H1 H2 H3; invert H4.
 
+Tactic Notation "destr" "on" constr(trm) :=
+  match goal with
+  | [ H : context[trm] |- _ ] => destruct H
+  end.
+
+Tactic Notation "destr" "on" constr(trm1) constr(trm2) :=
+  destr on trm1; destr on trm2.
+
 Tactic Notation "invert" "on" constr(trm) :=
   match goal with
   | [ H : context[trm] |- _ ] => invert H
@@ -166,11 +174,11 @@ Tactic Notation "exrewrite" constr(lem) :=
 Tactic Notation "eexrewrite" constr(lem) :=
   exexec lem ltac:(fun l => erewrite l).
 
-Tactic Notation "exapply" constr(lem) :=
-  exexec lem ltac:(fun l => apply l).
+Tactic Notation "context" "apply" constr(lem) :=
+  match goal with [H : _ |- _ ] => apply lem in H end.
 
-Tactic Notation "eexapply" constr(lem) :=
-  exexec lem ltac:(fun l => eapply l).
+Tactic Notation "context" "eapply" constr(lem) :=
+  match goal with [H : _ |- _ ] => apply lem in H end.
 
 
 (** Tactics for list reassociation. *)
@@ -481,108 +489,6 @@ Inductive list_pred {A B : Type} (pred : (A * B) -> Prop) : list (A * B) -> Prop
 | pred_cons : forall x xs, pred x -> list_pred pred xs -> list_pred pred $ x :: xs.
 Hint Constructors list_pred.
 
-Inductive contains {A B : Type} (k : A) (v : B) : list (A * B) -> Type :=
-| con_skip : forall k' v' t, contains k v t -> contains k v $ (k', v') :: t
-| con_found : forall t, contains k v $ (k, v) :: t.
-Hint Constructors contains.
-
-Arguments con_skip {A B k v}.
-
-Notation "l `contains` k ↦ v" := (contains k v l) (at level 80) : type_scope.
-
-
-Section Containment.
-  Variable A : Type.
-  Variable B : Type.  
-
-  Variable k : A.
-  Variable v : B.
-  
-  Lemma contains_is_in : forall l,
-      l `contains` k ↦ v -> In (k, v) l.
-  Proof.
-    intros. induction X; [right | left]; trivial.
-  Qed.
-
-  Definition contains_dec (k' : A) (v' : B) (l : list (A * B))
-             (ev : (k', v') :: l `contains` k ↦ v) :
-    (l `contains` k ↦ v) + {k' = k /\ v = v'}.
-  Proof.
-    dep_destruct ev; auto.
-  Defined.
-
-  Definition contains_neq_follows :
-    forall (k' : A) (v' : B) (l : list (A * B))
-      (ev : (k', v') :: l `contains` k ↦ v),
-      k <> k' -> l `contains` k ↦ v.
-  Proof.
-    intros. dep_destruct (contains_dec ev); routine.
-  Defined.
-
-  Lemma contains_means_not_empty :
-    forall l, l `contains` k ↦ v -> not_empty l.
-  Proof.
-    intros. destruct X; routine.
-  Qed.
-
-  Definition containment_relaxation :
-    forall l (ev : l `contains` k ↦ v) l1 l2,
-      l1 ++ l ++ l2 `contains` k ↦ v.
-  Proof.
-    induction l1; routine.
-    induction ev; routine.
-  Defined.
-
-End Containment.
-Hint Resolve contains_is_in contains_neq_follows contains_means_not_empty.
-Hint Resolve containment_relaxation.
-
-
-Section Replacement.
-  Variable A : Type.
-  Variable B : Type.
-  Variable k : A.
-  Variable nv : B.
-
-  Fixpoint replace_value (v : B) (l : list (A * B))
-           (ev : l `contains` k ↦ v) : list (A * B) :=
-    match ev with
-    | con_skip k' v' t ev' => (k', v') :: @replace_value v t ev'
-    | con_found _ _ t => (k, nv) :: t
-    end.
-
-  Definition replace_eq :
-    forall l v (ev : l `contains` k ↦ v),
-      replace_value ev `contains` k ↦ nv.
-  Proof.
-    induction ev; routine.
-  Defined.
-
-  Definition replace_neq :
-  forall l (v : B) k' v'
-    (ev : l `contains` k ↦ v) (ev' : l `contains` k' ↦ v'),
-    k <> k' ->
-    (replace_value ev) `contains` k' ↦ v'.
-  Proof.
-    intros.
-    induction ev'; dep_destruct ev; eroutine.
-  Defined.
-
-End Replacement.
-
-Hint Resolve replace_eq replace_neq.
-
-Module ReplacementExample.
-  Corollary replace_twice_eq :
-    forall A B l (k : A) (v : B) nv1 nv2
-      (ev : l `contains` k ↦ v),
-      In (k, nv2) $ replace_value nv2 (replace_eq nv1 ev).
-  Proof.
-    intros. auto.
-  Qed.
-End ReplacementExample.
-
-
 (**
  * It's very painful that we will need to deal with two data types that
  * are effectively lists, but we cannot use list directly, because we need
@@ -711,9 +617,9 @@ Ltac solve_label_notin :=
                ];
   try tauto.
 
-Hint Extern 1 (_ `notin` _) =>
+Hint Extern 1 (_ `lnotin` _) =>
 match goal with
-| [ |- ?l `notin` _ ] => match type of l with label => solve_label_notin end
+| [ |- ?l `lnotin` _ ] => solve_label_notin
 end.
 
 Ltac ldestruct_uniq := LabelAssocList.destruct_uniq.
