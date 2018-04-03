@@ -83,27 +83,36 @@ module _ {a} {A : Set a} where
   ∉⋃ : ∀ {x l L} → x ∉ ⋃ L → l ∈ L → x ∉ l
   ∉⋃ x∉⋃L l∈L x∈l = x∉⋃L $ ∈⋃ x∈l l∈L
 
+
   ∈⊆-combine : ∀ {x : A} {l₁ l₂} → x ∈ l₁ → l₁ ⊆ l₂ → x ∈ l₂
   ∈⊆-combine () (∅ l)
   ∈⊆-combine (skip .h x∈l₁) (grow h h∈l l₁⊆l₂) = ∈⊆-combine x∈l₁ l₁⊆l₂
   ∈⊆-combine (found l) (grow h h∈l l₁⊆l₂)      = h∈l
 
+  ∉⊆-unpack : ∀ {x : A} {l₁ l₂} → x ∉ l₂ → l₁ ⊆ l₂ → x ∉ l₁
+  ∉⊆-unpack x∉l₂ l₁⊆l₂ x∈l₁ = x∉l₂ $ ∈⊆-combine x∈l₁ l₁⊆l₂
 
-  ⊆-growr : ∀ {x : A} {l l′} → l ⊆ l′ → l ⊆ x ∷ l′
-  ⊆-growr {x} {.[]} (∅ l)                  = ∅ (x ∷ l)
-  ⊆-growr {x} {.(h ∷ _)} (grow h h∈l l⊆l′) = grow h (skip x h∈l) (⊆-growr l⊆l′)
+  ⊆-growʳ : ∀ {x : A} {l l′} → l ⊆ l′ → l ⊆ x ∷ l′
+  ⊆-growʳ {x} {.[]} (∅ l)                  = ∅ (x ∷ l)
+  ⊆-growʳ {x} {.(h ∷ _)} (grow h h∈l l⊆l′) = grow h (skip x h∈l) (⊆-growʳ l⊆l′)
 
-  ⊆-relaxˡ : ∀ {l : List A} {l₁ l₂} → l ⊆ l₂ → l ⊆ l₁ ++ l₂
-  ⊆-relaxˡ {l₁ = []} l⊆l₂     = l⊆l₂
-  ⊆-relaxˡ {l₁ = x ∷ l₁} l⊆l₂ = ⊆-growr $ ⊆-relaxˡ {l₁ = l₁} l⊆l₂
+  ⊆-shrinkˡ : ∀ {x : A} {l l′} → x ∷ l ⊆ l′ → l ⊆ l′
+  ⊆-shrinkˡ (grow h h∈l ss) = ss
 
-  ⊆-relaxʳ : ∀ {l : List A} {l₁ l₂} → l ⊆ l₁ → l ⊆ l₁ ++ l₂
-  ⊆-relaxʳ {l₂ = l₂} (∅ l)             = ∅ (l ++ l₂)
-  ⊆-relaxʳ {l₂ = l₂} (grow h h∈l l⊆l₁) = grow h (∈-relaxʳ l₂ h∈l) $ ⊆-relaxʳ l⊆l₁
+  ⊆-relaxˡ : ∀ {l : List A} l₁ {l₂} → l ⊆ l₂ → l ⊆ l₁ ++ l₂
+  ⊆-relaxˡ [] l⊆l₂       = l⊆l₂
+  ⊆-relaxˡ (x ∷ l₁) l⊆l₂ = ⊆-growʳ $ ⊆-relaxˡ l₁ l⊆l₂
+
+  ⊆-relaxʳ : ∀ {l : List A} {l₁} l₂ → l ⊆ l₁ → l ⊆ l₁ ++ l₂
+  ⊆-relaxʳ l₂ (∅ l)             = ∅ (l ++ l₂)
+  ⊆-relaxʳ l₂ (grow h h∈l l⊆l₁) = grow h (∈-relaxʳ l₂ h∈l) $ ⊆-relaxʳ l₂ l⊆l₁
+
+  ⊆-relax : ∀ l₁ {l l′ : List A} l₂ → l ⊆ l′ → l ⊆ l₁ ++ l′ ++ l₂
+  ⊆-relax l₁ l₂ l⊆l′ = ⊆-relaxˡ l₁ (⊆-relaxʳ l₂ l⊆l′)
 
   ⊆-reflexive : _≡_ ⇒ (_⊆_ {a}  {A})
   ⊆-reflexive {[]} refl    = ∅ []
-  ⊆-reflexive {x ∷ i} refl = grow x (found i) (⊆-growr $ ⊆-reflexive refl)
+  ⊆-reflexive {x ∷ i} refl = grow x (found i) (⊆-growʳ $ ⊆-reflexive refl)
 
   ⊆-refl : Reflexive (_⊆_ {a} {A})
   ⊆-refl = ⊆-reflexive refl
@@ -124,50 +133,3 @@ module _ {a} {A : Set a} where
     { isPreorder = ⊆-isPreorder
     }
 
-  
-
--- we are ready to build reasoning toolset
-module ContainmentReasoning {a} {A : Set a} {Cons : Set a → Set a}
-  (one : ∀ {B : Set a} → B → Cons B)
-  (_≺_ : ∀ {B : Set a} → B → Cons B → Set a)
-  (one-compat : ∀ {B : Set a} (x : B) → x ≺ one x)
-  {flatten : ∀ {B : Set a} → Cons (Cons B) → Cons B}
-  (flatten-compat : ∀ {B : Set a} {x : B} {l L} → x ≺ l → l ≺ L → x ≺ flatten L) where
-
-  open import Data.Nat renaming (ℕ to Nat)
-  open import Relation.Binary.PropositionalEquality
-
-  NestedCons : Nat → (B : Set a) → Set a
-  NestedCons zero B = B
-  NestedCons (suc n) B = NestedCons n (Cons B)
-
-  infix  3 _∎
-  infixr 2 _≺⟨_⟩_
-  infix  1 begin_
-
-  flatten-n : ∀ {B} n → NestedCons n B → Cons B
-  flatten-n zero e   = one e
-  flatten-n {B} (suc n) e = flatten $ flatten-n n e
-
-  -- |this is fairly tricky: we express the data type in GADT
-  -- in order to learn about the hierarchy of types in containment
-  -- reasoning.
-  data _RelatesBy_To_ {B : Set a} : B → (n : Nat) → NestedCons n B → Set a where
-    lvl0 : ∀ {x} → x RelatesBy 0 To x
-    lvl+ : ∀ {x : B} {n l L} →
-             (x≺l : x ≺ l) →
-             (cont : l RelatesBy n To L) →
-             x RelatesBy suc n To L
-    
-  establish : ∀ {B : Set a} {x : B} {n L} → x RelatesBy n To L → x ≺ flatten-n n L
-  establish {x = x} lvl0  = one-compat x
-  establish (lvl+ x≺l ev) = flatten-compat x≺l (establish ev)
-
-  begin_ : ∀ {B : Set a} {x : B} {n L} → x RelatesBy n To L → x ≺ flatten-n n L
-  begin_ = establish
-
-  _≺⟨_⟩_ : ∀ (x : A) {l n L} → x ≺ l → l RelatesBy n To L → x RelatesBy suc n To L
-  x ≺⟨ x≺l ⟩ ev = lvl+ x≺l ev
-
-  _∎ : (x : A) → x RelatesBy 0 To x
-  _∎ x = lvl0
