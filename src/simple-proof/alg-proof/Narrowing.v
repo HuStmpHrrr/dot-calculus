@@ -11,7 +11,7 @@ Section NarrowingPrep.
   | [ |- _ ⊢ _ ⦂ _ ] => idtac
   end; reassoc 2 with 0.
   
-  Local Hint Extern 1 => eexapply weaken_rules.
+  Local Hint Extern 1 => eapply weaken_rules.
   
   Lemma narrow_var :
     forall G G' x T,
