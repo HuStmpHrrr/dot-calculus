@@ -53,14 +53,14 @@ Section InertObj.
   Lemma open_preserves_ldom : forall k z (DS : decs),
       ldom (open_rec k z DS) = ldom DS.
   Proof. induction on decs; routine. Qed.
-  
+
   
   Lemma open_dec_invert_inert : forall k z l D,
       z `notin` fv D ->
       inert_dec (l, open_rec k z D) ->
       inert_dec (l, D).
   Proof.
-    destruct D; routine by invert on inert_dec.
+    destr on dec; routine by invert on inert_dec.
     context apply open_fresh_inj_typ_dec_decs; routine.
   Qed.
   Local Hint Resolve open_dec_invert_inert.

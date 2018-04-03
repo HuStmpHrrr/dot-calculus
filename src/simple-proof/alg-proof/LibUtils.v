@@ -25,18 +25,20 @@ Tactic Notation "invert" hyp(H1) hyp(H2) := invert H1; invert H2.
 Tactic Notation "invert" hyp(H1) hyp(H2) hyp(H3) := invert H1 H2; invert H3.
 Tactic Notation "invert" hyp(H1) hyp(H2) hyp(H3) hyp(H4) := invert H1 H2 H3; invert H4.
 
-Tactic Notation "destr" "on" constr(trm) :=
+Ltac intro_do tac trm :=
   match goal with
-  | [ H : context[trm] |- _ ] => destruct H
+  | [ H : context[trm] |- _ ] => tac H
+  | _ => intro; intro_do tac trm
   end.
+
+Tactic Notation "destr" "on" constr(trm) :=
+  intro_do ltac:(fun H => destruct H) trm.
 
 Tactic Notation "destr" "on" constr(trm1) constr(trm2) :=
   destr on trm1; destr on trm2.
 
 Tactic Notation "invert" "on" constr(trm) :=
-  match goal with
-  | [ H : context[trm] |- _ ] => invert H
-  end.
+  intro_do ltac:(fun H => invert H) trm.
 
 Tactic Notation "invert" "on" constr(trm1) constr(trm2) :=
   invert trm1; invert trm2.
