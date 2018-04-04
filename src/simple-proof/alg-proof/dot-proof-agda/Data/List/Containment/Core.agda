@@ -31,10 +31,13 @@ module _ {a} {A : Set a} where
   not-empty-relax [] (x ∷ l) l2 ev = tt
   not-empty-relax (x ∷ l1) l l2 ev = tt
 
-  infix 4 _∈_
+  infix 4 _∈_  _∉_
   data _∈_ (e : A) : List A → Set a where
     skip  : ∀ {l} h → e ∈ l → e ∈ h ∷ l
     found : ∀ l → e ∈ e ∷ l
+
+  _∉_ : A → List A → Set a
+  e ∉ l = ¬ (e ∈ l)
 
   ∈-dec : ∀ {dec : Decidable {A = A} _≡_} → Decidable _∈_
   ∈-dec e [] = no (λ ())
@@ -51,10 +54,6 @@ module _ {a} {A : Set a} where
   ∈⇒not-empty (skip h c) = tt
   ∈⇒not-empty (found l)  = tt
 
-  infix 4 _∉_
-  _∉_ : A → List A → Set a
-  e ∉ l = ¬ (e ∈ l)
-
   ∈-witness : ∀ l₁ x l₂ → x ∈ l₁ ++ x ∷ l₂
   ∈-witness [] _ l₂        = found l₂
   ∈-witness (x ∷ l₁) x′ l₂ = skip x $ ∈-witness l₁ x′ l₂
@@ -64,10 +63,21 @@ module _ {a} {A : Set a} where
     grow  : ∀ {h l} → h ∉ l → uniq l → uniq $ h ∷ l
 
     -- subset relation
-  infix 4 _⊆_
+  infix 4 _⊆_  _⊈_
   data _⊆_ : List A → List A → Set a where
     ∅    : ∀ l → [] ⊆ l
     grow : ∀ h {t l} → (h∈l : h ∈ l) → (t⊆l : t ⊆ l) → h ∷ t ⊆ l
+
+  _⊈_ : List A → List A → Set a
+  l₁ ⊈ l₂ = ¬ (l₁ ⊆ l₂)
+
+  ⊆-dec : ∀ {dec : Decidable {A  = A} _≡_} → Decidable _⊆_
+  ⊆-dec {dec} [] l′              = yes (∅ l′)
+  ⊆-dec {dec} (x ∷ l) l′ with ∈-dec {dec} x l′
+  ... | yes p with ⊆-dec {dec} l l′
+  ...            | yes p₁        = yes (grow x p p₁)
+  ...            | no ¬p         = no λ{ (grow _ h∈l x₁) → ¬p x₁ }
+  ⊆-dec {dec} (x ∷ l) l′ | no ¬p = no λ { (grow _ h∈l r) → ¬p h∈l }
 
 
 module _ {a b}{A : Set a}{B : A → Set b} where
@@ -140,6 +150,26 @@ module _ {a} {A : Set a} where
   _++⁺′_ : List A → List⁺ A → List⁺ A
   [] ++⁺′ l₂       = l₂
   (x ∷ l₁) ++⁺′ l₂ = x ∷ l₁ ++ toList l₂
+
+
+  infix 4 _⊆⁺_  _⊈⁺_  _⁺⊆⁺_  _⁺⊈⁺_
+  record _⊆⁺_ (l : List A) (l′ : List⁺ A) : Set a where
+    field
+      l⊆l′ : l ⊆ toList l′
+
+  _⊈⁺_ : List A → List⁺ A → Set a
+  l ⊈⁺ l′ = ¬ (l ⊆⁺ l′)
+
+  record _⁺⊆⁺_ (l : List⁺ A) (l′ : List⁺ A) : Set a where
+    field
+      l⊆l′ : toList l ⊆ toList l′
+
+  _⁺⊈⁺_ : List⁺ A → List⁺ A → Set a
+  l ⁺⊈⁺ l′ = ¬ (l ⁺⊆⁺ l′)
+
+  record uniq⁺ (l : List⁺ A) : Set a where
+    field
+      uq : uniq $ toList l
 
   ++⁺≡++⁺′ : ∀ l₁ l₂ → l₁ ++⁺ l₂ ≡ l₁ ++⁺′ l₂
   ++⁺≡++⁺′ [] l₂ = refl

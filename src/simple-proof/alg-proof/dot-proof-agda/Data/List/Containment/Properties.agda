@@ -83,6 +83,16 @@ module _ {a} {A : Set a} where
   ∉⋃ : ∀ {x l L} → x ∉ ⋃ L → l ∈ L → x ∉ l
   ∉⋃ x∉⋃L l∈L x∈l = x∉⋃L $ ∈⋃ x∈l l∈L
 
+  ++⋃ : ∀ l L → l ++ ⋃ L ≡ ⋃ (l ∷ L)
+  ++⋃ _ _ = refl
+
+  ⋃++ : ∀ L l → ⋃ L ++ l ≡ ⋃ (L ∷ʳ l)
+  ⋃++ [] l       rewrite ++-identityʳ l = refl
+  ⋃++ (L ∷ L₁) l rewrite ++-assoc L (⋃ L₁) l
+                       | ⋃++ L₁ l       = refl
+
+  ++⋃++ : ∀ l₁ L l₂ → l₁ ++ (⋃ L) ++ l₂ ≡ ⋃ (l₁ ∷ (L ∷ʳ l₂))
+  ++⋃++ l₁ L l₂ rewrite ⋃++ L l₂ = refl
 
   ∈⊆-combine : ∀ {x : A} {l₁ l₂} → x ∈ l₁ → l₁ ⊆ l₂ → x ∈ l₂
   ∈⊆-combine () (∅ l)
@@ -90,7 +100,7 @@ module _ {a} {A : Set a} where
   ∈⊆-combine (found l) (grow h h∈l l₁⊆l₂)      = h∈l
 
   ∉⊆-unpack : ∀ {x : A} {l₁ l₂} → x ∉ l₂ → l₁ ⊆ l₂ → x ∉ l₁
-  ∉⊆-unpack x∉l₂ l₁⊆l₂ x∈l₁ = x∉l₂ $ ∈⊆-combine x∈l₁ l₁⊆l₂
+  ∉⊆-unpack x∉l₂ l₁⊆l₂ = λ x∈l₁ → x∉l₂ $ ∈⊆-combine x∈l₁ l₁⊆l₂
 
   ⊆-growʳ : ∀ {x : A} {l l′} → l ⊆ l′ → l ⊆ x ∷ l′
   ⊆-growʳ {x} {.[]} (∅ l)                  = ∅ (x ∷ l)
@@ -109,6 +119,12 @@ module _ {a} {A : Set a} where
 
   ⊆-relax : ∀ l₁ {l l′ : List A} l₂ → l ⊆ l′ → l ⊆ l₁ ++ l′ ++ l₂
   ⊆-relax l₁ l₂ l⊆l′ = ⊆-relaxˡ l₁ (⊆-relaxʳ l₂ l⊆l′)
+
+  ⋃L⇒⊆ : ∀ {l : List A} {L} → l ∈ L → l ⊆ ⋃ L
+  ⋃L⇒⊆ (skip [] l∈L)          = ⋃L⇒⊆ l∈L
+  ⋃L⇒⊆ {l} (skip (x ∷ h) l∈L) = ⊆-growʳ $ ⋃L⇒⊆ (skip h l∈L)
+  ⋃L⇒⊆ {[]} (found l₁)        = ∅ $ ⋃ l₁
+  ⋃L⇒⊆ {x ∷ l} (found L₁)     = grow x (found $ l ++ ⋃ L₁) (⊆-growʳ $ ⋃L⇒⊆ $ found L₁)
 
   ⊆-reflexive : _≡_ ⇒ (_⊆_ {a}  {A})
   ⊆-reflexive {[]} refl    = ∅ []
@@ -133,3 +149,11 @@ module _ {a} {A : Set a} where
     { isPreorder = ⊆-isPreorder
     }
 
+  ⊆-enlarge : ∀ {x : A} {l} → x ∉ l → ∃[ l′ ](l ⊆ l′)
+  ⊆-enlarge {x} {l} _ = x ∷ l , ⊆-growʳ {x} ⊆-refl
+
+  -- this requires _≡_ to be decidable in order to decide x ∈? l′ under the hood
+  ⊈-extra : ∀ {l : List A} {l′} → l ⊈ l′ → ∃[ x ](x ∉ l′)
+  ⊈-extra {[]} {l′} ev with ev (∅ l′)
+  ... | ()
+  ⊈-extra {x ∷ l} ev = {!!}
