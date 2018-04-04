@@ -1,5 +1,5 @@
 Require Import Definitions Substitution.
-
+Require Import Coq.Lists.List.
 
 Inductive inert_dec : label * dec -> Prop :=
 | rd_typ : forall A T, inert_dec (label_typ A ∈ T ⋯ T)
@@ -8,7 +8,7 @@ Hint Constructors inert_dec.
 
 
 Definition inert_decs (DS : decs) :=
-  not_empty DS /\ luniq DS /\ list_pred inert_dec DS.
+  not_empty DS /\ luniq DS /\ Forall inert_dec DS.
 Hint Unfold inert_decs.
 
 
@@ -40,7 +40,7 @@ Section InertObj.
       G ⊩[ ds ⦂ DS ] ->
       inert_decs DS.
   Proof. 
-    induction on ty_defs; routine; invert on @list_pred; 
+    induction on ty_defs; routine; invert on Forall; 
       constructor; eroutine.
     (* TODO: this part is very typically due to lack of
      * power for current automation to deal with rewrites.
@@ -72,7 +72,7 @@ Section InertObj.
       inert_decs DS.
   Proof.
     induction on decs; routine;
-      invert on @list_pred;
+      invert on Forall;
       constructor;
       destr on decs;
       eroutine.

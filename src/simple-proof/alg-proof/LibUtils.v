@@ -486,11 +486,6 @@ Proof.
   induction l1; intros; invert_not_empty; simpl; trivial.
 Qed.
 
-Inductive list_pred {A B : Type} (pred : (A * B) -> Prop) : list (A * B) -> Prop :=
-| pred_nil : list_pred pred nil
-| pred_cons : forall x xs, pred x -> list_pred pred xs -> list_pred pred $ x :: xs.
-Hint Constructors list_pred.
-
 (**
  * It's very painful that we will need to deal with two data types that
  * are effectively lists, but we cannot use list directly, because we need
@@ -623,6 +618,12 @@ Hint Extern 1 (_ `lnotin` _) =>
 match goal with
 | [ |- ?l `lnotin` _ ] => solve_label_notin
 end.
+
+Hint Resolve
+  LabelSetImpl.add_1 LabelSetImpl.add_2 LabelSetImpl.remove_1
+  LabelSetImpl.remove_2 LabelSetImpl.singleton_2 LabelSetImpl.union_2
+  LabelSetImpl.union_3 LabelSetImpl.inter_3 LabelSetImpl.diff_3.
+
 
 Ltac ldestruct_uniq := LabelAssocList.destruct_uniq.
 Ltac lsolve_uniq := LabelAssocList.solve_uniq.

@@ -92,7 +92,7 @@ Inductive wf_lab_dec : label * dec -> Prop :=
 | wf_ld_trm : forall x T, wf_lab_dec (label_trm x ∷ T).
 Hint Constructors wf_lab_dec.
 
-Definition wf_decs (l : decs) := not_empty l /\ list_pred wf_lab_dec l.
+Definition wf_decs (l : decs) := not_empty l /\ Forall wf_lab_dec l.
 Hint Unfold wf_decs.
 
 Inductive trm : Set :=
@@ -160,7 +160,7 @@ Inductive wf_lab_def : label * def -> Prop :=
 | wf_lf_trm : forall x t, wf_lab_def (label_trm x ⩴ t).
 Hint Constructors wf_lab_def.
 
-Definition wf_defs (l : defs) := luniq l /\ not_empty l /\ list_pred wf_lab_def l.
+Definition wf_defs (l : defs) := luniq l /\ not_empty l /\ Forall wf_lab_def l.
 Hint Unfold wf_defs.
 
 
