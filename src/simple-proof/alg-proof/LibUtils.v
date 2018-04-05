@@ -8,6 +8,8 @@ Require Import Coq.Lists.List.
 
 Require Import Program.Equality.
 
+Require Import Coq.Program.Tactics.
+
 
 Notation "f $ x" := ((f) (x)) (at level 68, right associativity, only parsing).
 
@@ -45,14 +47,12 @@ Tactic Notation "invert" "on" constr(trm1) constr(trm2) :=
 
 
 Ltac destruct_all :=
-  repeat match goal with
-  | [ H : ?X \/ ?Y |- _ ] => destruct H
-  | [ H : ?X /\ ?Y |- _ ] => destruct H
-  | [ H : exists _, _ |- _ ] => destruct H
-  | [tup : _ * _ |- _ ] => destruct tup
-  | [ ev : { _ } + { _ } |- _ ] => destruct ev
-  | [ ev : _ + { _ } |- _ ] => destruct ev
-  end.
+  repeat (destruct_one_pair || destruct_one_ex ||
+          match goal with
+          | [ H : ?X \/ ?Y |- _ ] => destruct H
+          | [ ev : { _ } + { _ } |- _ ] => destruct ev
+          | [ ev : _ + { _ } |- _ ] => destruct ev
+          end).
 
 Ltac destruct_eq :=
   simpl;
@@ -72,11 +72,10 @@ Ltac dep_destruct ev :=
   let E := fresh "E" in
   remember ev as E; simpl in E; dependent destruction E.
 
-Ltac pick_fresh_do name tac :=
+Ltac pick_fresh_do tac :=
   let L := gather_atoms in
   let L := beautify_fset L in
-  let Fr := fresh "Fr" in
-  tac L; try intros name Fr.
+  tac L.
 
 Ltac doit from num tac :=
   match from with
@@ -85,15 +84,13 @@ Ltac doit from num tac :=
   end.
 
 Ltac cofinite :=
-  let inst := ltac:(fun L =>
-                      instantiate (1 := L) ||
-                      instantiate (2 := L) ||
-                      instantiate (3 := L) ||
-                      instantiate (4 := L)) in
   match goal with
-  | [  |- forall _, _ `notin` _ -> _ ] =>
+  | [  |- forall _, _ `notin` ?L' -> _ ] =>
+    is_evar L';
     let x := fresh "x" in
-    pick_fresh_do x inst
+    pick_fresh_do ltac:(fun L => unify L' L);
+    let Fr := fresh "Fr" in
+    intros x Fr
   | [ H : ?x `notin` _ |- _ ] =>
     gen x; cofinite
   end.
@@ -315,6 +312,12 @@ Ltac careful_unfold :=
   autounfold in *;
   fold any not; fold_not_under_forall. (* we don't want to unfold not *)
 
+(* (** explicitly exclude iota to avoid unfolding fixpoint. *)
+(*  * see how well it would work. *) *)
+(* Ltac cbvβδζ := cbv beta delta zeta. *)
+
+(* Ltac cbnβδζ := cbn beta delta zeta. *)
+
 Ltac simplify :=
   simpl in *; cbn in *; subst;
   careful_unfold.
@@ -328,6 +331,15 @@ Ltac direct_app :=
   | [ H: context[?G /\ _] |- ?G ] => apply H    
   end;
   repeat destruct_eq; destruct_all.
+
+Ltac progressive_destruction :=
+  repeat destruct_eq;
+  destruct_all;
+  repeat (match goal with
+         | [ H : Forall _ (_ :: _) |- _ ] => inversion H; clear H
+         | [ H : _ = (_, _) |- _ ] => inversion H; clear H
+         | [ H : (_, _) = _ |- _ ] => inversion H; clear H
+         end; try congruence; subst).
 
 
 (** These tactics are for further modifications such that routine tactic can
@@ -347,13 +359,12 @@ Ltac routine_impl prep tac :=
   try solve_by_invert;
   prep;
   simplify;
-  repeat destruct_eq; destruct_all;
-  repeat match goal with
-         | [ H : _ = (_, _) |- _ ] => inversion H; clear H
-         | [ H : (_, _) = _ |- _ ] => inversion H; clear H
-         end; try congruence; subst;
+  progressive_destruction;
   simplify;
-  repeat f_equal;
+  (* (repeat f_equal) is too aggressive. we might over do it.
+   * the workaround is to trivial to solve goal heuristically and 
+   * only repeat if we cannot solve the goal via cheap tactics. *)
+  repeat (f_equal; try eassumption; try congruence);
   try direct_app;
   repeat (split; autounfold; simpl; cbn; intros);
   routine_subtac1;
@@ -579,6 +590,7 @@ Notation lbinds := LabelAssocList.binds.
 Notation luniq := LabelAssocList.uniq.
 Notation lmap := LabelAssocList.map.
 Notation ldom := LabelAssocList.dom.
+Notation ladd := LabelSetImpl.add.
 
 Notation lIn := LabelSetImpl.In.
 Notation "x `lnotin` E" := (~ lIn x E) (at level 70).
@@ -633,3 +645,10 @@ Ltac luniq_routine :=
   try match goal with [ |- luniq _ ] => timeout 2 lsolve_uniq end.
                          
 Ltac routine_subtac1 ::= luniq_routine.
+
+(* OTHER HINTS *)
+
+(* always try to invert on non-empty universal quantification on lists *)
+Hint Extern 1 => match goal with
+                | [ H: Forall _ (_ :: _) |- _ ] => inversion H; clear H
+                end.

@@ -10,9 +10,10 @@ open import Function
 
 open import Relation.Nullary
 
-open import Relation.Binary.Core using (_⇒_ ; Decidable)
+-- open import Relation.Binary.Core using (_⇒_ ; Decidable)
+open import Relation.Binary.Decidability
 open import Relation.Binary.PropositionalEquality
-open import Relation.Binary
+open import Relation.Binary hiding (Decidable)
 
 open import Data.List.Properties
 open import Data.Nat.Properties
@@ -20,6 +21,7 @@ import Data.List.NonEmpty.Properties as Neℙ
 
 open import Level
 
+open Decidable {{...}} public
 
 module _ {a} {A : Set a} where
   not-empty : List A → Set
@@ -31,24 +33,38 @@ module _ {a} {A : Set a} where
   not-empty-relax [] (x ∷ l) l2 ev = tt
   not-empty-relax (x ∷ l1) l l2 ev = tt
 
-  infix 4 _∈_  _∉_
+  infix 4 _∈_  _∉_ _∈?_  _∈??_
   data _∈_ (e : A) : List A → Set a where
-    skip  : ∀ {l} h → e ∈ l → e ∈ h ∷ l
-    found : ∀ l → e ∈ e ∷ l
+    instance
+      skip  : ∀ {l} h → e ∈ l → e ∈ h ∷ l
+      found : ∀ l     → e ∈ e ∷ l
 
   _∉_ : A → List A → Set a
   e ∉ l = ¬ (e ∈ l)
 
-  ∈-dec : ∀ {dec : Decidable {A = A} _≡_} → Decidable _∈_
-  ∈-dec e [] = no (λ ())
-  ∈-dec {dec} e (x ∷ l) with dec e x
-  ∈-dec {dec} e (x ∷ l) | yes p rewrite p = yes (found l)
-  ∈-dec {dec} e (x ∷ l) | no ¬p with ∈-dec {dec} e l
-  ∈-dec {dec} e (x ∷ l) | no ¬p | yes p   = yes (skip x p)
-  ∈-dec {dec} e (x ∷ l) | no ¬p | no ¬p₁  = no λ {
-      (skip .x t) → ¬p₁ t
-    ; (found .l)  → ¬p refl
-    }
+  ∈-dec : ∀ {{_ : Decidable {A = A} _≡_}} → Decidable _∈_
+  ∈-dec {{d}} = record
+                  { dec = ∈-dec′
+                  } where
+    ∈-dec′ : (e : A) → (l : List A) → Dec (e ∈ l)
+    ∈-dec′ e []                        = no (λ ())
+    ∈-dec′ e (x ∷ l) with dec {{d}} e x
+    ∈-dec′ e (x ∷ l) | yes p rewrite p = yes (found l)
+    ∈-dec′ e (x ∷ l) | no ¬p with ∈-dec′ e l
+    ∈-dec′ e (x ∷ l) | no ¬p | yes p   = yes (skip x p)
+    ∈-dec′ e (x ∷ l) | no ¬p | no ¬p₁  = no λ {
+        (skip .x t) → ¬p₁ t
+      ; (found .l)  → ¬p refl
+      }
+
+  _∈?_ : ∀ {{_ : Decidable {A = A} _∈_}} → (e : A) → (l : List A) → Dec (e ∈ l)
+  e ∈? l = dec e l
+
+  _∈??_ : ∀ {{_ : Decidable {A = A} _≡_}} → (e : A) → (l : List A) → Dec (e ∈ l)
+  _∈??_ {{≡d}} e l = e ∈? l
+    where instance
+            ∈d : Decidable _∈_
+            ∈d = ∈-dec
 
   ∈⇒not-empty : {e : A} {l : List A} → e ∈ l → not-empty l
   ∈⇒not-empty (skip h c) = tt
@@ -59,25 +75,37 @@ module _ {a} {A : Set a} where
   ∈-witness (x ∷ l₁) x′ l₂ = skip x $ ∈-witness l₁ x′ l₂
 
   data uniq : List A → Set a where
-    empty : uniq []
-    grow  : ∀ {h l} → h ∉ l → uniq l → uniq $ h ∷ l
+    instance
+      empty : uniq []
+      grow  : ∀ {h l} → h ∉ l → uniq l → uniq $ h ∷ l
 
     -- subset relation
-  infix 4 _⊆_  _⊈_
+  infix 4 _⊆_  _⊈_  _⊆?_
   data _⊆_ : List A → List A → Set a where
-    ∅    : ∀ l → [] ⊆ l
-    grow : ∀ h {t l} → (h∈l : h ∈ l) → (t⊆l : t ⊆ l) → h ∷ t ⊆ l
+    instance
+      ∅    : ∀ l → [] ⊆ l
+      grow : ∀ h {t l} → (h∈l : h ∈ l) → (t⊆l : t ⊆ l) → h ∷ t ⊆ l
 
   _⊈_ : List A → List A → Set a
   l₁ ⊈ l₂ = ¬ (l₁ ⊆ l₂)
 
-  ⊆-dec : ∀ {dec : Decidable {A  = A} _≡_} → Decidable _⊆_
-  ⊆-dec {dec} [] l′              = yes (∅ l′)
-  ⊆-dec {dec} (x ∷ l) l′ with ∈-dec {dec} x l′
-  ... | yes p with ⊆-dec {dec} l l′
-  ...            | yes p₁        = yes (grow x p p₁)
-  ...            | no ¬p         = no λ{ (grow _ h∈l x₁) → ¬p x₁ }
-  ⊆-dec {dec} (x ∷ l) l′ | no ¬p = no λ { (grow _ h∈l r) → ¬p h∈l }
+  ⊆-dec : ∀ {{_ : Decidable {A  = A} _∈_}} → Decidable _⊆_
+  ⊆-dec = record
+            { dec = ⊆-dec′
+            } where
+    ⊆-dec′ : ∀ (x y : List A) → Dec (x ⊆ y)
+    ⊆-dec′ [] l′              = yes (∅ l′)
+    ⊆-dec′ (x ∷ l) l′ with x ∈? l′
+    ... | yes p with ⊆-dec′ l l′
+    ...            | yes p₁   = yes (grow x p p₁)
+    ...            | no ¬p    = no λ{ (grow _ h∈l x₁) → ¬p x₁ }
+    ⊆-dec′ (x ∷ l) l′ | no ¬p = no λ { (grow _ h∈l r) → ¬p h∈l }
+
+  _⊆?_ : ∀ {{_ : Decidable {A  = A} _∈_}} (x y : List A) → Dec (x ⊆ y)
+  l₁ ⊆? l₂ = dec l₁ l₂
+    where instance
+            ⊆d : Decidable _⊆_
+            ⊆d = ⊆-dec
 
 
 module _ {a b}{A : Set a}{B : A → Set b} where
@@ -122,8 +150,8 @@ module _ {a} {A : Set a} where
 
   data DesList⁺ {a}(A : Set a) : Set a where
     _∷[] : (hd : A) → DesList⁺ A
-    _∷_ : (hd : A) → (tl : List⁺ A) → DesList⁺ A
-    
+    _∷_  : (hd : A) → (tl : List⁺ A) → DesList⁺ A
+
   des-view⁺ : ∀ {a}{A : Set a} → List⁺ A → DesList⁺ A
   des-view⁺ (head₁ ∷ [])        = head₁ ∷[]
   des-view⁺ (head₁ ∷ x ∷ tail₁) = head₁ ∷ x ∷ tail₁
@@ -138,10 +166,17 @@ module _ {a} {A : Set a} where
   e ∉⁺ l = ¬ (e ∈⁺ l)
 
 
-  ∈⁺-dec : ∀ {dec : Decidable {A = A} _≡_} → Decidable _∈⁺_
-  ∈⁺-dec {dec} e l with ∈-dec {dec = dec} e $ toList l
-  ∈⁺-dec {dec} e l | yes p = yes $ wrap p
-  ∈⁺-dec {dec} e l | no ¬p = no λ { (wrap ev) → ¬p ev }
+  ∈⁺-dec : ∀ {{_ : Decidable {A = A} _≡_}} → Decidable _∈⁺_
+  ∈⁺-dec = record
+             { dec = ∈⁺-dec′
+             } where
+    instance
+      ∈d : Decidable _∈_
+      ∈d = ∈-dec
+    ∈⁺-dec′ : ∀ (x : A) (y : List⁺ A) → Dec (x ∈⁺ y)
+    ∈⁺-dec′ e l with dec e $ toList l
+    ∈⁺-dec′ e l | yes p = yes $ wrap p
+    ∈⁺-dec′ e l | no ¬p = no λ { (wrap ev) → ¬p ev }
   
   ∈⁺⇒∈ : ∀ {e l} → e ∈⁺ l → e ∈ toList l
   ∈⁺⇒∈ (wrap ev) = ev
@@ -194,7 +229,7 @@ module _ {a} {A : Set a} where
 
   ∈⁺-witness₂ : ∀ l₁ x l₂ → x ∈⁺ l₁ ++⁺ x ∷ l₂
   ∈⁺-witness₂ l₁ x l₂ = wit-conv ∈⁺wit
-    where ∈⁺wit : x ∈⁺ l₁ ++⁺′ x ∷ l₂
+    where ∈⁺wit    : x ∈⁺ l₁ ++⁺′ x ∷ l₂
           ∈⁺wit = ∈⁺-witness l₁ x l₂
           wit-conv : x ∈⁺ l₁ ++⁺′ x ∷ l₂ → x ∈⁺ l₁ ++⁺ x ∷ l₂
           wit-conv ev rewrite ++⁺′≡++⁺ l₁ $ x ∷ l₂ = ev

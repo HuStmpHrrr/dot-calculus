@@ -40,7 +40,7 @@ Section InertObj.
       G ⊩[ ds ⦂ DS ] ->
       inert_decs DS.
   Proof. 
-    induction on ty_defs; routine; invert on Forall; 
+    induction on ty_defs; routine;
       constructor; eroutine.
     (* TODO: this part is very typically due to lack of
      * power for current automation to deal with rewrites.
@@ -52,7 +52,17 @@ Section InertObj.
   (* seem very easy on this part. *)
   Lemma open_preserves_ldom : forall k z (DS : decs),
       ldom (open_rec k z DS) = ldom DS.
-  Proof. induction on decs; routine. Qed.
+  Proof. induction on decs. auto.
+         intros; try cofinite;
+  try solve_by_invert;
+  simplify. 
+  progressive_destruction.
+  simplify.
+  repeat f_equal;
+  try direct_app;
+  repeat (split; autounfold; simpl; cbn; intros).
+
+         progressive_destruction.  routine. Qed.
 
   
   Lemma open_dec_invert_inert : forall k z l D,
@@ -72,7 +82,6 @@ Section InertObj.
       inert_decs DS.
   Proof.
     induction on decs; routine;
-      invert on Forall;
       constructor;
       destr on decs;
       eroutine.

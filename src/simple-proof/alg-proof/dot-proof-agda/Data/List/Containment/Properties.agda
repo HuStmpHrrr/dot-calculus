@@ -9,9 +9,10 @@ open import Data.Product
 open import Function using (_$_ ; _∘_)
 open import Data.Empty using (⊥)
 
-open import Relation.Binary.Core
-open import Relation.Binary
+open import Relation.Binary.Core hiding (Decidable)
+open import Relation.Binary hiding (Decidable)
 open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.Decidability
 
 -- a pure fact
 ⊎⇒duality : ∀ {a b} {X Y : Set a} {B : Set b} →
@@ -152,8 +153,9 @@ module _ {a} {A : Set a} where
   ⊆-enlarge : ∀ {x : A} {l} → x ∉ l → ∃[ l′ ](l ⊆ l′)
   ⊆-enlarge {x} {l} _ = x ∷ l , ⊆-growʳ {x} ⊆-refl
 
-  -- this requires _≡_ to be decidable in order to decide x ∈? l′ under the hood
-  ⊈-extra : ∀ {l : List A} {l′} → l ⊈ l′ → ∃[ x ](x ∉ l′)
+  ⊈-extra : ∀ {{_ : Decidable {A = A} _∈_}} {l : List A} {l′} → l ⊈ l′ → ∃[ x ](x ∉ l′)
   ⊈-extra {[]} {l′} ev with ev (∅ l′)
   ... | ()
-  ⊈-extra {x ∷ l} ev = {!!}
+  ⊈-extra {x ∷ l} {l′} ev with x ∈? l′
+  ... | yes x∈l′ = ⊈-extra $ ev ∘ (grow x x∈l′)
+  ... | no  x∉l′ = x , x∉l′
