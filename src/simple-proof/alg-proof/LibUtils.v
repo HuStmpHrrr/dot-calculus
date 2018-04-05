@@ -143,8 +143,8 @@ Ltac fold_not_under_forall :=
                          end)
                  end) in
          let tH' := eval cbn beta in (forall n : T, b''' n) in
-             let tH := type of H in
-             change tH with tH' in H
+         let tH := type of H in
+         change tH with tH' in H
        end
      end.
 
@@ -212,13 +212,6 @@ Ltac reassoc_impl lst assoc :=
                     ltac:(fun l' p => scan l' target ac' ltac:(fun l' => cb (p :: l')))
         end in
     scan lst 0 assoc ltac:(fun l => l)
-  end.
-
-Ltac map_list T tac lst :=
-  match lst with
-  | ?h :: ?t => let h' := tac h in
-               let t' := map_list tac t in constr:(h' :: t')
-  | nil => constr:(@nil T)
   end.
 
 Ltac app_lists lists :=

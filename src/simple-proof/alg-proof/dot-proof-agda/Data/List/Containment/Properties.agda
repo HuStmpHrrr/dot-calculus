@@ -137,18 +137,17 @@ module _ {a} {A : Set a} where
   ⊆-trans : Transitive (_⊆_ {a} {A})
   ⊆-trans {.[]} {.l} {k} (∅ l) j⊆k        = ∅ k
   ⊆-trans {.(h ∷ _)} (grow h h∈l i⊆j) j⊆k = grow h (∈⊆-combine h∈l j⊆k) (⊆-trans i⊆j j⊆k)
-  
-  ⊆-isPreorder : IsPreorder _≡_ _⊆_
-  ⊆-isPreorder = record
-    { isEquivalence = isEquivalence
-    ; reflexive     = ⊆-reflexive
-    ; trans         = ⊆-trans
-    }
-  
-  ⊆-preorder : Preorder _ _ _
-  ⊆-preorder = record
-    { isPreorder = ⊆-isPreorder
-    }
+
+  instance
+    ≡⊆-isPreorder : IsPreorder _≡_ _⊆_
+    ≡⊆-isPreorder = record
+                   { isEquivalence = isEquivalence
+                   ; reflexive     = ⊆-reflexive
+                   ; trans         = ⊆-trans
+                   }
+    
+  ≡⊆-preorder : Preorder _ _ _
+  ≡⊆-preorder = record { isPreorder = ≡⊆-isPreorder }
 
   ⊆-enlarge : ∀ {x : A} {l} → x ∉ l → ∃[ l′ ](l ⊆ l′)
   ⊆-enlarge {x} {l} _ = x ∷ l , ⊆-growʳ {x} ⊆-refl
@@ -159,3 +158,108 @@ module _ {a} {A : Set a} where
   ⊈-extra {x ∷ l} {l′} ev with x ∈? l′
   ... | yes x∈l′ = ⊈-extra $ ev ∘ (grow x x∈l′)
   ... | no  x∉l′ = x , x∉l′
+
+
+  ≋-refl : Reflexive (_≋_ {a} {A})
+  ≋-refl {l} = ⊆-refl , ⊆-refl
+
+  ≋-sym : Symmetric (_≋_ {a} {A})
+  ≋-sym (l₁⊆l₂ , l₂⊆l₁) = l₂⊆l₁ , l₁⊆l₂
+
+  ≋-trans : Transitive (_≋_ {a} {A})
+  ≋-trans (l₁⊆l₂ , l₂⊆l₁) (l₂⊆l₃ , l₃⊆l₂) = ⊆-trans l₁⊆l₂ l₂⊆l₃ , ⊆-trans l₃⊆l₂ l₂⊆l₁
+
+  ≋-respects-⊆ : _≋_ ⇒ (_⊆_ {a} {A})
+  ≋-respects-⊆ l₁≋l₂ = proj₁ l₁≋l₂
+
+  ⊆-antisym : Antisymmetric (_≋_ {A = A}) _⊆_
+  ⊆-antisym l₁⊆l₂ l₂⊆l₁ = l₁⊆l₂ , l₂⊆l₁
+
+  ⊂-irrefl : Irreflexive (_≋_ {a} {A}) _⊂_
+  ⊂-irrefl x≋y = λ z → proj₂ z (proj₂ x≋y)
+
+  ⊂-trans : Transitive (_⊂_ {A = A})
+  ⊂-trans (x⊆y , y⊈x) (y⊆z , z⊈y) = ⊆-trans x⊆y y⊆z , λ z⊆x → z⊈y (⊆-trans z⊆x x⊆y)
+
+  ⊂-respects-≋ : (_⊂_ {A = A}) Respects₂ _≋_
+  ⊂-respects-≋ = (λ { (a⊆b , b⊆a) (x⊆a , a⊈x) →
+                       ⊆-trans x⊆a a⊆b , λ b⊂x → a⊈x (⊆-trans a⊆b b⊂x)
+                    })
+                 ,
+                 λ { (a⊆b , b⊆a) (x⊆a , a⊈x) →
+                     ⊆-trans b⊆a x⊆a , λ a⊆b → a⊈x (⊆-trans a⊆b b⊆a)
+                   }
+
+  instance
+    ≋-equiv : IsEquivalence (_≋_ {a} {A})
+    ≋-equiv = record
+              { refl  = ≋-refl
+              ; sym   = ≋-sym
+              ; trans = ≋-trans
+              }
+
+    ≋-decEquiv : ∀ {{_ : Decidable {A = A} _∈_}} → IsDecEquivalence (_≋_ {a} {A})
+    ≋-decEquiv = record
+                 { isEquivalence = ≋-equiv
+                 ; _≟_           = decide
+                 }
+
+    ⊆-isPreorder : IsPreorder (_≋_ {a} {A}) _⊆_
+    ⊆-isPreorder = record
+                    { isEquivalence = ≋-equiv
+                    ; reflexive     = ≋-respects-⊆
+                    ; trans         = ⊆-trans
+                    }
+
+    ⊆-isPartialOrder : IsPartialOrder (_≋_ {a} {A}) _⊆_
+    ⊆-isPartialOrder = record
+                       { isPreorder = ⊆-isPreorder
+                       ; antisym    = ⊆-antisym
+                       }
+
+    ⊆-isDecPartialOrder : ∀ {{_ : Decidable {A = A} _∈_}} →
+                            IsDecPartialOrder (_≋_ {a} {A}) _⊆_
+    ⊆-isDecPartialOrder = record
+                          { isPartialOrder = ⊆-isPartialOrder
+                          ; _≟_            = decide
+                          ; _≤?_           = decide
+                          }
+
+    ⊂-isStrictPartialOrder : IsStrictPartialOrder (_≋_ {a} {A}) _⊂_
+    ⊂-isStrictPartialOrder = record
+                             { isEquivalence = ≋-equiv
+                             ; irrefl        = ⊂-irrefl
+                             ; trans         = ⊂-trans
+                             ; <-resp-≈      = ⊂-respects-≋
+                             }
+
+    ⊂-isDecStrictPartialOrder : ∀ {{_ : Decidable {A = A} _∈_}} →
+                                  IsDecStrictPartialOrder (_≋_ {a} {A}) _⊂_
+    ⊂-isDecStrictPartialOrder = record
+                                { isStrictPartialOrder = ⊂-isStrictPartialOrder
+                                ; _≟_  = decide
+                                ; _<?_ = decide
+                                }
+  
+  ≋-setoid : Setoid _ _
+  ≋-setoid = record { isEquivalence = ≋-equiv }
+
+  ≋-decSetoid : ∀ {{_ : Decidable {A = A} _∈_}} → DecSetoid _ _
+  ≋-decSetoid = record { isDecEquivalence = ≋-decEquiv }
+
+  ⊆-preorder : Preorder _ _ _
+  ⊆-preorder = record { isPreorder = ⊆-isPreorder }
+
+  ⊆-poset : Poset _ _ _
+  ⊆-poset = record { isPartialOrder = ⊆-isPartialOrder }
+
+  ⊆-decPoset : ∀ {{_ : Decidable {A = A} _∈_}} → DecPoset _ _ _
+  ⊆-decPoset = record { isDecPartialOrder = ⊆-isDecPartialOrder }
+
+  ⊂-strictPartialOrder : StrictPartialOrder _ _ _
+  ⊂-strictPartialOrder = record { isStrictPartialOrder = ⊂-isStrictPartialOrder }
+
+  ⊂-decStrictPartialOrder : ∀ {{_ : Decidable {A = A} _∈_}} →
+                              DecStrictPartialOrder _ _ _
+  ⊂-decStrictPartialOrder =
+    record { isDecStrictPartialOrder = ⊂-isDecStrictPartialOrder }
