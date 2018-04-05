@@ -1,3 +1,5 @@
+{-# OPTIONS --safe #-}
+
 module Data.List.AssocList where
 
 open import Data.List

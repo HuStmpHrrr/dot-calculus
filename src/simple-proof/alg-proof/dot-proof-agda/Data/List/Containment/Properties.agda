@@ -1,3 +1,5 @@
+{-# OPTIONS --safe #-}
+
 module Data.List.Containment.Properties where
 
 open import Data.List
@@ -96,7 +98,7 @@ module _ {a} {A : Set a} where
   ++⋃++ l₁ L l₂ rewrite ⋃++ L l₂ = refl
 
   ∈⊆-combine : ∀ {x : A} {l₁ l₂} → x ∈ l₁ → l₁ ⊆ l₂ → x ∈ l₂
-  ∈⊆-combine () (∅ l)
+  ∈⊆-combine () (emp l)
   ∈⊆-combine (skip .h x∈l₁) (grow h h∈l l₁⊆l₂) = ∈⊆-combine x∈l₁ l₁⊆l₂
   ∈⊆-combine (found l) (grow h h∈l l₁⊆l₂)      = h∈l
 
@@ -104,7 +106,7 @@ module _ {a} {A : Set a} where
   ∉⊆-unpack x∉l₂ l₁⊆l₂ = λ x∈l₁ → x∉l₂ $ ∈⊆-combine x∈l₁ l₁⊆l₂
 
   ⊆-growʳ : ∀ {x : A} {l l′} → l ⊆ l′ → l ⊆ x ∷ l′
-  ⊆-growʳ {x} {.[]} (∅ l)                  = ∅ (x ∷ l)
+  ⊆-growʳ {x} {.[]} (emp l)                = emp (x ∷ l)
   ⊆-growʳ {x} {.(h ∷ _)} (grow h h∈l l⊆l′) = grow h (skip x h∈l) (⊆-growʳ l⊆l′)
 
   ⊆-shrinkˡ : ∀ {x : A} {l l′} → x ∷ l ⊆ l′ → l ⊆ l′
@@ -115,7 +117,7 @@ module _ {a} {A : Set a} where
   ⊆-relaxˡ (x ∷ l₁) l⊆l₂ = ⊆-growʳ $ ⊆-relaxˡ l₁ l⊆l₂
 
   ⊆-relaxʳ : ∀ {l : List A} {l₁} l₂ → l ⊆ l₁ → l ⊆ l₁ ++ l₂
-  ⊆-relaxʳ l₂ (∅ l)             = ∅ (l ++ l₂)
+  ⊆-relaxʳ l₂ (emp l)           = emp (l ++ l₂)
   ⊆-relaxʳ l₂ (grow h h∈l l⊆l₁) = grow h (∈-relaxʳ l₂ h∈l) $ ⊆-relaxʳ l₂ l⊆l₁
 
   ⊆-relax : ∀ l₁ {l l′ : List A} l₂ → l ⊆ l′ → l ⊆ l₁ ++ l′ ++ l₂
@@ -124,18 +126,18 @@ module _ {a} {A : Set a} where
   ⋃L⇒⊆ : ∀ {l : List A} {L} → l ∈ L → l ⊆ ⋃ L
   ⋃L⇒⊆ (skip [] l∈L)          = ⋃L⇒⊆ l∈L
   ⋃L⇒⊆ {l} (skip (x ∷ h) l∈L) = ⊆-growʳ $ ⋃L⇒⊆ (skip h l∈L)
-  ⋃L⇒⊆ {[]} (found l₁)        = ∅ $ ⋃ l₁
+  ⋃L⇒⊆ {[]} (found l₁)        = emp $ ⋃ l₁
   ⋃L⇒⊆ {x ∷ l} (found L₁)     = grow x (found $ l ++ ⋃ L₁) (⊆-growʳ $ ⋃L⇒⊆ $ found L₁)
 
   ⊆-reflexive : _≡_ ⇒ (_⊆_ {a}  {A})
-  ⊆-reflexive {[]} refl    = ∅ []
+  ⊆-reflexive {[]} refl    = emp []
   ⊆-reflexive {x ∷ i} refl = grow x (found i) (⊆-growʳ $ ⊆-reflexive refl)
 
   ⊆-refl : Reflexive (_⊆_ {a} {A})
   ⊆-refl = ⊆-reflexive refl
 
   ⊆-trans : Transitive (_⊆_ {a} {A})
-  ⊆-trans {.[]} {.l} {k} (∅ l) j⊆k        = ∅ k
+  ⊆-trans {.[]} {.l} {k} (emp l) j⊆k      = emp k
   ⊆-trans {.(h ∷ _)} (grow h h∈l i⊆j) j⊆k = grow h (∈⊆-combine h∈l j⊆k) (⊆-trans i⊆j j⊆k)
 
   instance
@@ -153,7 +155,7 @@ module _ {a} {A : Set a} where
   ⊆-enlarge {x} {l} _ = x ∷ l , ⊆-growʳ {x} ⊆-refl
 
   ⊈-extra : ∀ {{_ : Decidable {A = A} _∈_}} {l : List A} {l′} → l ⊈ l′ → ∃[ x ](x ∉ l′)
-  ⊈-extra {[]} {l′} ev with ev (∅ l′)
+  ⊈-extra {[]} {l′} ev with ev (emp l′)
   ... | ()
   ⊈-extra {x ∷ l} {l′} ev with x ∈? l′
   ... | yes x∈l′ = ⊈-extra $ ev ∘ (grow x x∈l′)
@@ -183,11 +185,11 @@ module _ {a} {A : Set a} where
 
   ⊂-respects-≋ : (_⊂_ {A = A}) Respects₂ _≋_
   ⊂-respects-≋ = (λ { (a⊆b , b⊆a) (x⊆a , a⊈x) →
-                       ⊆-trans x⊆a a⊆b , λ b⊂x → a⊈x (⊆-trans a⊆b b⊂x)
+                      ⊆-trans x⊆a a⊆b , λ b⊆x → a⊈x (⊆-trans a⊆b b⊆x)
                     })
                  ,
-                 λ { (a⊆b , b⊆a) (x⊆a , a⊈x) →
-                     ⊆-trans b⊆a x⊆a , λ a⊆b → a⊈x (⊆-trans a⊆b b⊆a)
+                 λ { (a⊆b , b⊆a) (a⊆x , x⊈a) →
+                     ⊆-trans b⊆a a⊆x , λ x⊆b → x⊈a (⊆-trans x⊆b b⊆a)
                    }
 
   instance
@@ -237,8 +239,8 @@ module _ {a} {A : Set a} where
                                   IsDecStrictPartialOrder (_≋_ {a} {A}) _⊂_
     ⊂-isDecStrictPartialOrder = record
                                 { isStrictPartialOrder = ⊂-isStrictPartialOrder
-                                ; _≟_  = decide
-                                ; _<?_ = decide
+                                ; _≟_                  = decide
+                                ; _<?_                 = decide
                                 }
   
   ≋-setoid : Setoid _ _

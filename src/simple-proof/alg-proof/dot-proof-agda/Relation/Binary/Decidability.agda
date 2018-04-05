@@ -1,3 +1,5 @@
+{-# OPTIONS --safe #-}
+
 module Relation.Binary.Decidability where
 
 import Relation.Binary.Core as RCore
@@ -18,6 +20,8 @@ record Decidable {a b ℓ} {A : Set a} {B : Set b}
     dec : ∀ x y → Dec (x ~ y)
 
 
+open Decidable {{...}} public
+
 -- | convert the functional definition of decidability to
 -- the type class one.
 decidable : ∀ {a b ℓ} {A : Set a} {B : Set b}
@@ -32,7 +36,7 @@ decide : ∀ {a b ℓ} {A : Set a} {B : Set b}
               {_~_ : RCore.REL A B ℓ} →
               {{_ : Decidable _~_}} →
               RCore.Decidable _~_
-decide {{dec}} x y = Decidable.dec dec x y
+decide x y = dec x y
 
 
 open import Relation.Binary using (Setoid)

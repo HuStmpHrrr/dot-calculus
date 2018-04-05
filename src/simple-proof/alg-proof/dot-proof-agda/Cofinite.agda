@@ -11,8 +11,6 @@ open import Data.Product
 open import Function
 
 open import Relation.Nullary
-
-open import Relation.Binary.Core using (_⇒_ ; Decidable)
 open import Relation.Binary.PropositionalEquality
 
 open import Data.Nat.Properties

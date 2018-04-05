@@ -1,3 +1,5 @@
+{-# OPTIONS --safe #-}
+
 module Data.List.Containment.Core where
 
 open import Data.List
@@ -21,7 +23,6 @@ import Data.List.NonEmpty.Properties as Neℙ
 
 open import Level
 
-open Decidable {{...}} public
 
 module _ {a} {A : Set a} where
   not-empty : List A → Set
@@ -32,6 +33,8 @@ module _ {a} {A : Set a} where
   not-empty-relax [] [] l2 ()
   not-empty-relax [] (x ∷ l) l2 ev = tt
   not-empty-relax (x ∷ l1) l l2 ev = tt
+
+  pattern ∅ = []
 
   infix 4 _∈_  _∉_ _∈?_  _∈??_
   data _∈_ (e : A) : List A → Set a where
@@ -81,7 +84,7 @@ module _ {a} {A : Set a} where
   -- subset relation
   data _⊆_ : List A → List A → Set a where
     instance
-      ∅    : ∀ l → [] ⊆ l
+      emp  : ∀ l → [] ⊆ l
       grow : ∀ h {t l} → (h∈l : h ∈ l) → (t⊆l : t ⊆ l) → h ∷ t ⊆ l
 
   _⊈_ : List A → List A → Set a
@@ -106,7 +109,7 @@ module _ {a} {A : Set a} where
             { dec = ⊆-dec′
             } where
       ⊆-dec′ : ∀ (x y : List A) → Dec (x ⊆ y)
-      ⊆-dec′ [] l′              = yes (∅ l′)
+      ⊆-dec′ [] l′              = yes (emp l′)
       ⊆-dec′ (x ∷ l) l′ with x ∈? l′
       ... | yes p with ⊆-dec′ l l′
       ...            | yes p₁   = yes (grow x p p₁)

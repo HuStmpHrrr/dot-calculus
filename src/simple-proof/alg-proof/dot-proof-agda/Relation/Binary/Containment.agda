@@ -1,3 +1,5 @@
+{-# OPTIONS --safe #-}
+
 module Relation.Binary.Containment where
 
 open import Relation.Binary
