@@ -10,7 +10,9 @@ open List⁺
 open Prod
 
 import Data.Unit
+open Data.Unit using () renaming (⊤ to True) public
 import Data.Empty
+open Data.Empty using () renaming (⊥ to False) public
 open import Function
 
 open import Relation.Binary.Core using (Decidable)
@@ -157,7 +159,7 @@ instance
   OpenAvar : CanOpen Avar
   _⟨_↦_⟩ {{OpenAvar}} (b x) n v with x ≟ n
   ... | yes p                   = f v
-  ... | no ¬p                   = b n
+  ... | no ¬p                   = b x
   _⟨_↦_⟩ {{OpenAvar}} (f x) n v = f x
 
 
