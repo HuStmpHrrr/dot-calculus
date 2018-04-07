@@ -19,7 +19,9 @@ Inductive opred : sta -> trm -> sta -> trm -> Prop :=
     [s] t0 ↦  [s'] t0' ->
     [s] lett t0 inn t ↦ [s'] lett t0' inn t
 where "[ s1 ] t1 ↦ [ s2 ] t2" := (opred s1 t1 s2 t2).
+Hint Constructors opred.
 
 Inductive nf : trm -> Prop :=
 | nf_var : forall x, nf (trm_var x)
 | nf_val : forall v, nf (trm_val v).
+Hint Constructors nf.

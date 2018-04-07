@@ -10,6 +10,7 @@ Hint Constructors inert_dec.
 Definition inert_decs (DS : decs) :=
   not_empty DS /\ luniq DS /\ Forall inert_dec DS.
 Hint Unfold inert_decs.
+Hint Transparent inert_decs.
 
 
 Lemma ty_defs_same_atoms : forall G ds DS,
@@ -84,8 +85,22 @@ End InertObj.
 Inductive inert_typ : typ -> Prop :=
 | inert_all : forall S T, inert_typ (all(S) T)
 | inert_obj : forall DS, inert_decs DS -> inert_typ (μ{DS}).
+Hint Constructors inert_typ.
 
 
 Definition inert_env (G : env) : Prop :=
   Forall (fun tup : (atom * typ) => let (_, t) := tup in inert_typ t) G /\ uniq G.
+Hint Unfold inert_env.
+Hint Transparent inert_env.
 
+(* This form of inert definitions automatically turn lots
+ * of problems to triviality.
+ *
+ * for example:
+ *)
+Section TrivialLemmas.
+  
+  Lemma binds_inert : forall G x T, inert_env G -> binds x T G -> inert_typ T.
+  Proof. induction G; eroutine. Qed.
+
+End TrivialLemmas.

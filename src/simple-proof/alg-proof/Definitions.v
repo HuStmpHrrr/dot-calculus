@@ -94,6 +94,7 @@ Hint Constructors wf_lab_dec.
 
 Definition wf_decs (l : decs) := not_empty l /\ Forall wf_lab_dec l.
 Hint Unfold wf_decs.
+Hint Transparent wf_decs.
 
 Inductive trm : Set :=
 | trm_var : avar -> trm
@@ -162,6 +163,7 @@ Hint Constructors wf_lab_def.
 
 Definition wf_defs (l : defs) := luniq l /\ not_empty l /\ Forall wf_lab_def l.
 Hint Unfold wf_defs.
+Hint Transparent wf_defs.
 
 
 (** OPENING *)
@@ -326,11 +328,6 @@ Instance FvVal : HasFv val := { fv := fv_val }.
 Instance FvDef : HasFv def := { fv := fv_def }.
 Instance FvDefs : HasFv defs := { fv := fv_defs }.
 
-Reserved Notation "G '⊢' t '⦂' T" (at level 70, t at level 79).
-Reserved Notation "G '⊢' T '<⦂' U" (at level 70, T at level 79).
-Reserved Notation "G ⊩ d ⦂ D" (at level 70, d at level 79).
-Reserved Notation "G ⊩[ ds ⦂ DS ]" (at level 70, ds at level 79).
-
 Notation env := (list (atom * typ)).
 Notation sta := (list (atom * val)).
 
@@ -342,6 +339,11 @@ Definition fv_values {T : Type} (f : T -> atoms)
 Instance FvEnv : HasFv env := { fv := fv_values fv }.
 Instance FvSta : HasFv sta := { fv := fv_values fv }.
 
+
+Reserved Notation "G '⊢' t '⦂' T" (at level 70, t at level 79).
+Reserved Notation "G '⊢' T '<⦂' U" (at level 70, T at level 79).
+Reserved Notation "G ⊩ d ⦂ D" (at level 70, d at level 79).
+Reserved Notation "G ⊩[ ds ⦂ DS ]" (at level 70, ds at level 79).
 
 Inductive ty_trm : env -> trm -> typ -> Prop :=
 | ty_var : forall G x T,
@@ -407,8 +409,8 @@ subtyp : env -> typ -> typ -> Prop :=
 | subtyp_all: forall L G S1 T1 S2 T2,
     G ⊢ S2 <⦂ S1 ->
     (forall x, x `notin` L ->
-       x ~ S2 ++ G ⊢ open x T1 <⦂ open x T2) ->
-    G ⊢ typ_all S1 T1 <⦂ typ_all S2 T2
+       x ~ S1 ++ G ⊢ open x T1 <⦂ open x T2) ->
+    G ⊢ all(S1) T1 <⦂ all(S2) T2
 | subtyp_fld : forall L G a T (DS1 DS2 : decs) U,
     (forall x, x `notin` L ->
           x ~ open_typ_to_context x
@@ -501,6 +503,9 @@ Ltac gather_atoms ::=
             `union` H `union` I `union` J `union` K `union` L).
 
 
+(** hook for mutual induction tactic *)
+Ltac mut_ind_2 := fail.
+
 Ltac mut_ind :=
   intros;
   match goal with
@@ -515,7 +520,7 @@ Ltac mut_ind :=
            (_ : G1 ⊩[ dfs ⦂ DS ]), _) /\
         (forall (G2 : env) (S U : typ) (_ : G2 ⊢ S <⦂ U), _) ] =>
     apply typing_mut
-  end.
+  end || mut_ind_2.
 
 Tactic Notation "mutual" "induction" := mut_ind.
 Tactic Notation "mutual" "induction*" := mutual induction; intros.

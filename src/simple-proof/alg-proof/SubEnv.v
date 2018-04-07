@@ -17,7 +17,6 @@ Hint Constructors subenv.
 
 Section SubEnvProps.
 
-  Local Hint Resolve uniq_cons_1.
   Lemma subenv_refl : forall G, uniq G -> G ⪯ G.
   Proof. induction G; eroutine. Qed.
   Local Hint Resolve subenv_refl.

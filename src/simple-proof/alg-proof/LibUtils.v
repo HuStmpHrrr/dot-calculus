@@ -629,6 +629,8 @@ Hint Resolve
   LabelSetImpl.remove_2 LabelSetImpl.singleton_2 LabelSetImpl.union_2
   LabelSetImpl.union_3 LabelSetImpl.inter_3 LabelSetImpl.diff_3.
 
+(* try to deal with uniq for labels. *)
+Hint Resolve luniq_one luniq_cons luniq_app luniq_map.
 
 Ltac ldestruct_uniq := LabelAssocList.destruct_uniq.
 Ltac lsolve_uniq := LabelAssocList.solve_uniq.
@@ -645,3 +647,6 @@ Ltac routine_subtac1 ::= luniq_routine.
 Hint Extern 1 => match goal with
                 | [ H: Forall _ (_ :: _) |- _ ] => inversion H; clear H
                 end.
+
+(* try to deal with uniq for atoms *)
+Hint Resolve uniq_one uniq_cons uniq_app uniq_map uniq_cons_1.
