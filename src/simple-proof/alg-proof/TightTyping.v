@@ -9,7 +9,7 @@ Inductive tyt_trm : env -> trm -> typ -> Prop :=
     G ⊢# trm_var x ⦂ T
 | tyt_all_intro : forall L G T t U,
     (forall x, x `notin` L ->
-          x ~ T ++ G ⊢# open x t ⦂ open x U) ->
+          x ~ T ++ G ⊢ open x t ⦂ open x U) ->
     G ⊢# trm_val (λ( T ){ t }) ⦂ all( T ) U
 | tyt_all_elim : forall G (x z : atom) S T,
     G ⊢# trm_var x ⦂ all( S ) T ->
@@ -49,24 +49,24 @@ subtypt : env -> typ -> typ -> Prop :=
 | subtypt_all: forall L G S1 T1 S2 T2,
     G ⊢# S2 <⦂ S1 ->
     (forall x, x `notin` L ->
-       x ~ S1 ++ G ⊢# open x T1 <⦂ open x T2) ->
+       x ~ S1 ++ G ⊢ open x T1 <⦂ open x T2) ->
     G ⊢# typ_all S1 T1 <⦂ typ_all S2 T2
 | subtypt_fld : forall L G a T (DS1 DS2 : decs) U,
     (forall x, x `notin` L ->
           x ~ open_typ_to_context x
             (μ{ append DS1 $ decs_cons (label_trm a) (dec_trm T) DS2 }) ++
-            G ⊢# T <⦂ U) ->
+            G ⊢ T <⦂ U) ->
     G ⊢# μ{ append DS1 $ decs_cons (label_trm a) (dec_trm T) DS2 }
       <⦂ μ{ append DS1 $ decs_cons (label_trm a) (dec_trm U) DS2 } (* DS[a := U] *)
 | subtypt_typ : forall L G A (DS1 DS2 : decs) S1 T1 S2 T2,
     (forall x, x `notin` L ->
           x ~ open_typ_to_context x
             (μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }) ++
-            G ⊢# S2 <⦂ S1) ->
+            G ⊢ S2 <⦂ S1) ->
     (forall y, y `notin` L ->
           y ~ open_typ_to_context y
             (μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }) ++
-            G ⊢# T1 <⦂ T2) ->
+            G ⊢ T1 <⦂ T2) ->
     G ⊢# μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }
       <⦂ μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S2 T2) DS2 }
       (* DS[A := S2 .. T2] *)
@@ -88,14 +88,25 @@ subtypt : env -> typ -> typ -> Prop :=
 | subtypt_sel1 : forall G x A DS S T,
     binds x (μ{ DS }) G ->
     lbinds (label_typ A) (dec_typ S T) DS ->
-    G ⊢# S <⦂ typ_sel x A
+    G ⊢# S <⦂ typ_sel (avar_f x) A
 | subtypt_sel2 : forall G x A DS S T,
     binds x (μ{ DS }) G ->
     lbinds (label_typ A) (dec_typ S T) DS ->
-    G ⊢# typ_sel x A <⦂ T
+    G ⊢# typ_sel (avar_f x) A <⦂ T
 where "G ⊢# T <⦂ U" := (subtypt G T U) : type_scope.
 Hint Constructors tyt_trm subtypt.
 
+
+Tactic Notation "tight" "typing" "undec" "1" :=
+  match goal with
+  | [ |- _ ⊢ _ ⦂ _ ] => econstructor
+  | [ |- context[typ_all] ] => eapply subtypt_all
+  | [ |- context[dec_trm]] => eapply subtypt_fld
+  | [ |- context[dec_typ]] => eapply subtypt_typ
+  | [ |- context[ _ ⊢# _ <⦂ _ ⋅ _]] => eapply subtypt_sel1
+  | [ |- context[ _ ⊢# _ ⋅ _ <⦂ _]] => eapply subtypt_sel2
+  | _ => idtac
+  end.
 
 Scheme typt_trm_mut := Induction for tyt_trm Sort Prop
   with subtypt_mut := Induction for subtypt Sort Prop.

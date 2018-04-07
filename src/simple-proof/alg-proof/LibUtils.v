@@ -650,3 +650,11 @@ Hint Extern 1 => match goal with
 
 (* try to deal with uniq for atoms *)
 Hint Resolve uniq_one uniq_cons uniq_app uniq_map uniq_cons_1.
+
+(* strange that this general law is not provided from the library *)
+Lemma Forall_concat : forall A (l l' : list A) P,
+    Forall P l ->
+    Forall P l' ->
+    Forall P (l ++ l').
+Proof. induction on Forall; routine. Qed.
+Hint Resolve Forall_concat.

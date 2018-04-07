@@ -93,6 +93,7 @@ Definition inert_env (G : env) : Prop :=
 Hint Unfold inert_env.
 Hint Transparent inert_env.
 
+
 (* This form of inert definitions automatically turn lots
  * of problems to triviality.
  *
@@ -102,5 +103,12 @@ Section TrivialLemmas.
   
   Lemma binds_inert : forall G x T, inert_env G -> binds x T G -> inert_typ T.
   Proof. induction G; eroutine. Qed.
-
+  
+  Lemma inert_concat : forall G G',
+      inert_env G -> inert_env G' ->
+      uniq (G' ++ G) ->
+      inert_env (G' ++ G).
+  Proof. routine. Qed.
+  
 End TrivialLemmas.
+Hint Resolve inert_concat.

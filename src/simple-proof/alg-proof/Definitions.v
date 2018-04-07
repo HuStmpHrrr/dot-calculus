@@ -445,11 +445,11 @@ subtyp : env -> typ -> typ -> Prop :=
     G ⊢ μ{ DS } <⦂ μ{ DS1 } ->
     G ⊢ μ{ DS } <⦂ μ{ DS2 } ->
     G ⊢ μ{ DS } <⦂ μ{ append DS1 DS2 }
-| subtyp_sel1 : forall G x A DS S T,
+| subtyp_sel1 : forall G (x : var) A DS S T,
     G ⊢ trm_var x ⦂ μ{ DS } ->
     lbinds (label_typ A) (dec_typ S T) DS ->
     G ⊢ S <⦂ typ_sel x A
-| subtyp_sel2 : forall G x A DS S T,
+| subtyp_sel2 : forall G (x : var) A DS S T,
     G ⊢ trm_var x ⦂ μ{ DS } ->
     lbinds (label_typ A) (dec_typ S T) DS ->
     G ⊢ typ_sel x A <⦂ T
@@ -484,6 +484,11 @@ Scheme ty_trm_mut := Induction for ty_trm Sort Prop
   with subtyp_mut := Induction for subtyp Sort Prop.
 Combined Scheme typing_mut from ty_trm_mut, ty_def_mut, ty_defs_mut, subtyp_mut.
 
+Scheme tty_trm_mut := Induction for ty_trm Sort Prop
+  with tsubtyp_mut := Induction for subtyp Sort Prop.
+Combined Scheme ttyp_mut from tty_trm_mut, tsubtyp_mut.
+
+
 (** Tactics *)
 
 Ltac gather_atoms ::=
@@ -508,7 +513,7 @@ Ltac mut_ind_2 := fail.
 
 Ltac mut_ind :=
   intros;
-  match goal with
+  (match goal with
   | [ |- (forall _ : typ, _) /\ (forall _ : dec, _) /\ (forall _ : decs, _) ] =>
     apply typ_mutind
   | [ |- (forall _ : trm, _) /\ (forall _ : val, _) /\ (forall _ : def, _) /\ (forall _ : defs, _)] =>
@@ -520,7 +525,10 @@ Ltac mut_ind :=
            (_ : G1 ⊩[ dfs ⦂ DS ]), _) /\
         (forall (G2 : env) (S U : typ) (_ : G2 ⊢ S <⦂ U), _) ] =>
     apply typing_mut
-  end || mut_ind_2.
+  | [ |- (forall (G : env) (t : trm) (T : typ) (_ : G ⊢ t ⦂ T), _) /\
+        (forall (G2 : env) (S U : typ) (_ : G2 ⊢ S <⦂ U), _) ] =>
+    apply ttyp_mut
+   end || mut_ind_2).
 
 Tactic Notation "mutual" "induction" := mut_ind.
 Tactic Notation "mutual" "induction*" := mutual induction; intros.
