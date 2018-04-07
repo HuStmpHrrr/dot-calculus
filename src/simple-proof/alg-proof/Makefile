@@ -1,4 +1,4 @@
-FILES=Definitions.v 
+FILES=Safety.v 
 OBJECTS=$(FILES:.v=.vo)
 
 TLCDIR=../../../lib/tlc

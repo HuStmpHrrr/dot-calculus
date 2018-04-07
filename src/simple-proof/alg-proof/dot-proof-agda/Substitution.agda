@@ -34,11 +34,11 @@ instance
   open-fresh-injection {{OfjAvar}} {z}   (b x) (b x₁) k  _ _ eq with x ≟ k | x₁ ≟ k
   open-fresh-injection {{OfjAvar}} {z}   (b x) (b .x) .x _ _ eq | yes refl | yes refl = refl
   open-fresh-injection {{OfjAvar}} {z}   (b x) (b x₁) .x _ _ () | yes refl | no ¬p
-  open-fresh-injection {{OfjAvar}} {z}   (b x) (b x₁) k  _ _ ()  | no ¬p    | yes p
-  open-fresh-injection {{OfjAvar}} {z}   (b x) (b x₁) k  _ _ eq  | no ¬p    | no ¬p₁  = eq
+  open-fresh-injection {{OfjAvar}} {z}   (b x) (b x₁) k  _ _ () | no ¬p    | yes p
+  open-fresh-injection {{OfjAvar}} {z}   (b x) (b x₁) k  _ _ eq | no ¬p    | no ¬p₁   = eq
   open-fresh-injection {{OfjAvar}} {z}   (b x) (f x₁) k  _ _ eq with x ≟ k
   open-fresh-injection {{OfjAvar}} {.x₁} (b x) (f x₁) .x _ z∉f₂ refl | yes refl       = ⊥-elim (z∉f₂ $ found [])
-  open-fresh-injection {{OfjAvar}} {z}   (b x) (f x₁) k  _ _ eq       | no ¬p         = eq
+  open-fresh-injection {{OfjAvar}} {z}   (b x) (f x₁) k  _ _ eq      | no ¬p          = eq
   open-fresh-injection {{OfjAvar}} {z}   (f x) (b x₁) k  _ _ eq with x₁ ≟ k
   open-fresh-injection {{OfjAvar}} {.x}  (f x) (b x₁) k z∉f₁ _ refl  | yes p          = ⊥-elim (z∉f₁ (found []))
   open-fresh-injection {{OfjAvar}} {z}   (f x) (b x₁) k _ _ eq       | no ¬p          = eq

@@ -52,17 +52,7 @@ Section InertObj.
   (* seem very easy on this part. *)
   Lemma open_preserves_ldom : forall k z (DS : decs),
       ldom (open_rec k z DS) = ldom DS.
-  Proof. induction on decs. auto.
-         intros; try cofinite;
-  try solve_by_invert;
-  simplify. 
-  progressive_destruction.
-  simplify.
-  repeat f_equal;
-  try direct_app;
-  repeat (split; autounfold; simpl; cbn; intros).
-
-         progressive_destruction.  routine. Qed.
+  Proof. induction on decs; routine. Qed.
 
   
   Lemma open_dec_invert_inert : forall k z l D,
@@ -89,6 +79,13 @@ Section InertObj.
     erewrite <- open_preserves_ldom; eassumption.
   Qed.
 
-
 End InertObj.
+
+Inductive inert_typ : typ -> Prop :=
+| inert_all : forall S T, inert_typ (all(S) T)
+| inert_obj : forall DS, inert_decs DS -> inert_typ (μ{DS}).
+
+
+Definition inert_env (G : env) : Prop :=
+  Forall (fun tup : (atom * typ) => let (_, t) := tup in inert_typ t) G /\ uniq G.
 
