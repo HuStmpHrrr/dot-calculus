@@ -211,8 +211,8 @@ instance
   _⟨_↦_⟩ {{OpenTrm}} (x !$! x₁) n v       = x ⟨ n ↦ v ⟩ !$! x₁ ⟨ n ↦ v ⟩
   _⟨_↦_⟩ {{OpenTrm}} (llet t iin t₁) n v  = llet t ⟨ n ↦ v ⟩ iin t₁ ⟨ suc n ↦ v ⟩
 
-  _⟨_↦_⟩ {{OpenVal}} ν[ DS ]⟨ ds ⟩ n v    = ν[ DS ⟨ n ↦ v ⟩ ]⟨ ds ⟨ n ↦ v ⟩ ⟩
-  _⟨_↦_⟩ {{OpenVal}} Λ[ T ]⟨ t ⟩ n v      = Λ[ T ⟨ n ↦ v ⟩ ]⟨ t ⟨ n ↦ v ⟩ ⟩
+  _⟨_↦_⟩ {{OpenVal}} ν[ DS ]⟨ ds ⟩ n v    = ν[ DS ⟨ suc n ↦ v ⟩ ]⟨ ds ⟨ suc n ↦ v ⟩ ⟩
+  _⟨_↦_⟩ {{OpenVal}} Λ[ T ]⟨ t ⟩ n v      = Λ[ T ⟨ n ↦ v ⟩ ]⟨ t ⟨ suc n ↦ v ⟩ ⟩
   
   _⟨_↦_⟩ {{OpenDefTyp}} (defTyp Ty) n v   = defTyp $ Ty ⟨ n ↦ v ⟩
   
