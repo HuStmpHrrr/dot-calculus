@@ -162,7 +162,7 @@ instance
                           | t₁ ⟨ k ↦ z ⟩
   open-fresh-injection {{OfjDecList}} {z} (x ∷ t) (x₁ ∷ t₁) k ∉₁ ∉₂ refl
                           | inj₁ | inj₂ | x′ | t′ | .x′ | .t′
-                       rewrite inj₁ refl | inj₂ refl       = refl
+                          rewrite inj₁ refl | inj₂ refl       = refl
   
 
   open-fresh-injection {{OfjDecs}} {z} (h₁ ∷ t₁) (h₂ ∷ t₂) k ∉₁ ∉₂ eq
@@ -177,7 +177,7 @@ instance
                           | t₂ ⟨ k ↦ z ⟩
   open-fresh-injection {{OfjDecs}} {z} (h₁ ∷ t₁) (h₂ ∷ t₂) k ∉₁ ∉₂ refl
                           | inj₁ | inj₂ | h₁′ | t₁′ | .h₁′ | .t₁′
-                       rewrite inj₁ refl | inj₂ refl = refl
+                          rewrite inj₁ refl | inj₂ refl = refl
 
   OfjTrm     : OpenFreshInj Trm
   OfjVal     : OpenFreshInj Val
@@ -265,7 +265,7 @@ instance
                           | ds₁ ⟨ suc k ↦ z ⟩
   open-fresh-injection {{OfjVal}} {z} ν[ DS ]⟨ ds ⟩ ν[ DS₁ ]⟨ ds₁ ⟩ k ∉₁ ∉₂ refl
                           | inj₁ | inj₂ | DS′ | .DS′ | ds′ | .ds′
-                       rewrite inj₁ refl | inj₂ refl = refl
+                          rewrite inj₁ refl | inj₂ refl = refl
   open-fresh-injection {{OfjVal}} {z} ν[ DS ]⟨ ds ⟩ Λ[ T ]⟨ t ⟩     k ∉₁ ∉₂ ()
   open-fresh-injection {{OfjVal}} {z} Λ[ T ]⟨ t ⟩   ν[ DS ]⟨ ds ⟩   k ∉₁ ∉₂ ()
   open-fresh-injection {{OfjVal}} {z} Λ[ T ]⟨ t ⟩   Λ[ T₁ ]⟨ t₁ ⟩   k ∉₁ ∉₂ eq
@@ -278,8 +278,8 @@ instance
                           | t ⟨ suc k ↦ z ⟩
                           | t₁ ⟨ suc k ↦ z ⟩
   open-fresh-injection {{OfjVal}} {z} Λ[ T ]⟨ t ⟩ Λ[ T₁ ]⟨ t₁ ⟩ k ∉₁ ∉₂ refl
-                       | inj₁ | inj₂ | T′ | .T′ | t′ | .t′
-                       rewrite inj₁ refl | inj₂ refl = refl
+                          | inj₁ | inj₂ | T′ | .T′ | t′ | .t′
+                          rewrite inj₁ refl | inj₂ refl = refl
 
 
   open-fresh-injection {{OfjDefTyp}} {z} (defTyp Ty) (defTyp Ty₁) k ∉₁ ∉₂ eq
@@ -288,8 +288,8 @@ instance
                        with Ty ⟨ k ↦ z ⟩
                           | Ty₁ ⟨ k ↦ z ⟩
   open-fresh-injection {{OfjDefTyp}} {z} (defTyp Ty) (defTyp Ty₁) k ∉₁ ∉₂ refl
-                       | inj | Ty′ | .Ty′
-                       rewrite inj refl = refl
+                          | inj | Ty′ | .Ty′
+                          rewrite inj refl = refl
 
 
   open-fresh-injection {{OfjDefTrm}} {z} (defTrm tr) (defTrm tr₁) k ∉₁ ∉₂ eq
@@ -298,8 +298,8 @@ instance
                        with tr ⟨ k ↦ z ⟩
                           | tr₁ ⟨ k ↦ z ⟩
   open-fresh-injection {{OfjDefTrm}} {z} (defTrm tr) (defTrm tr₁) k ∉₁ ∉₂ refl
-                       | inj | tr′ | .tr′
-                       rewrite inj refl = refl
+                          | inj | tr′ | .tr′
+                          rewrite inj refl = refl
 
 
   open-fresh-injection {{OfjLDef}} {z} (trm x , tr) (trm x₁ , tr₁) k ∉₁ ∉₂ eq
@@ -308,8 +308,8 @@ instance
                        with tr ⟨ k ↦ z ⟩
                           | tr₁ ⟨ k ↦ z ⟩
   open-fresh-injection {{OfjLDef}} {z} (trm x , tr) (trm .x , tr₁) k ∉₁ ∉₂ refl
-                       | inj | tr′ | .tr′
-                       rewrite inj refl = refl
+                          | inJ | tr′ | .tr′
+                          rewrite inj refl = refl
   open-fresh-injection {{OfjLDef}} {z} (trm x , tr) (typ x₁ , Ty)  k ∉₁ ∉₂ ()
   open-fresh-injection {{OfjLDef}} {z} (typ x , Ty) (trm x₁ , tr)  k ∉₁ ∉₂ ()
   open-fresh-injection {{OfjLDef}} {z} (typ x , Ty) (typ x₁ , Ty₁) k ∉₁ ∉₂ eq
@@ -318,8 +318,8 @@ instance
                        with Ty ⟨ k ↦ z ⟩
                           | Ty₁ ⟨ k ↦ z ⟩
   open-fresh-injection {{OfjLDef}} {z} (typ x , Ty) (typ .x , Ty₁) k ∉₁ ∉₂ refl
-                       | inj | Ty′ | .Ty′
-                       rewrite inj refl = refl
+                          | inj | Ty′ | .Ty′
+                          rewrite inj refl = refl
 
 
   open-fresh-injection {{OfjDefList}} {z} []      []        k ∉₁ ∉₂ refl = refl
@@ -335,8 +335,8 @@ instance
                           | t ⟨ k ↦ z ⟩
                           | t₁ ⟨ k ↦ z ⟩
   open-fresh-injection {{OfjDefList}} {z} (x ∷ t) (x₁ ∷ t₁) k ∉₁ ∉₂ refl
-                       | inj₁ | inj₂ | x′ | .x′ | t′ | .t′
-                       rewrite inj₁ refl | inj₂ refl                     = refl
+                          | inj₁ | inj₂ | x′ | .x′ | t′ | .t′
+                          rewrite inj₁ refl | inj₂ refl                  = refl
 
 
   open-fresh-injection {{OfjDefs}} {z} (h₁ ∷ t₁) (h₂ ∷ t₂) k ∉₁ ∉₂ eq
@@ -350,5 +350,5 @@ instance
                           | h₂ ⟨ k ↦ z ⟩
                           | t₂ ⟨ k ↦ z ⟩
   open-fresh-injection {{OfjDefs}} {z} (h₁ ∷ t₁) (h₂ ∷ t₂) k ∉₁ ∉₂ refl
-                       | inj₁ | inj₂ | h₁′ | t₁′ | .h₁′ | .t₁′
+                          | inj₁ | inj₂ | h₁′ | t₁′ | .h₁′ | .t₁′
                        rewrite inj₁ refl | inj₂ refl = refl
