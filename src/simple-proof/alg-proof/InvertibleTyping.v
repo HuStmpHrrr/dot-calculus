@@ -79,33 +79,27 @@ Inductive ty_val_inv : env -> val -> typ -> Prop :=
     G ⊢##v v ⦂ T ->
     G ⊢##v v ⦂ ⊤
 where "G ⊢##v v ⦂ T" := (ty_val_inv G v T).
-    
 
-(* TODO: obviously we need a tactic to record this pattern. *)
+
+Tactic Notation "inv" "typing" "undec" "1" :=
+  match goal with
+  | [ H : _ ⊢## _ ⦂ ⊥ |- _ ] => invert H
+  | [|- _ ⊢## _ ⦂ μ{ append _ _ }] => apply ty_obj_merge_inv
+  | [|- _ ⊢## _ ⦂ _ ⋅ _ ] => eapply ty_obj_sel_inv
+  | [H : _ ⊢## _ ⦂ _ ⋅ _ |- _ ] => invert H
+  | _ => idtac
+end.
+
+
 Lemma invertible_typing_closure_tight: forall G x T U,
     inert_env G ->
     G ⊢## x ⦂ T ->
     G ⊢# T <⦂ U ->
     G ⊢## x ⦂ U.
 Proof.
-  dep induction on subtypt; eroutine.
-  - inversion H4.
-    apply binds_inert in H2; routine.
-  - apply ty_obj_merge_inv; routine.
-  - eapply ty_obj_sel_inv; routine.
-    eapply binds_inert_obj_lbinds in H1; routine.
-  - invert H4; routine.
-    apply binds_inert in H5; routine.
-    assert (μ{DS} = μ{DS0}).
-    eapply binds_unique; try eassumption.
-    invert H5. subst.
-    assert (inert_typ (μ{DS0})).
-    eapply binds_inert; routine.
-    invert H6.
-    eapply binds_inert_obj_lbinds in H1; routine.
-    assert (dec_typ S0 S0 = dec_typ T T).
-    eapply LabelAssocList.binds_unique; try eassumption.
-    invert H14. routine.
+  induction on subtypt; eroutine;
+    inv typing undec 1;
+    prove from inert.
 Qed.
 
 

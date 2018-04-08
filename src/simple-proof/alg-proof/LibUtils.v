@@ -44,6 +44,52 @@ Tactic Notation "invert" "on" constr(trm) :=
 Tactic Notation "invert" "on" constr(trm1) constr(trm2) :=
   invert trm1; invert trm2.
 
+Ltac find_dup_hyp tac non :=
+  match goal with
+  | [ H : ?X, H' : ?X |- _ ] =>
+    lazymatch type of X with
+    | Prop => 
+      tac X
+    | _ => idtac
+    end
+  | _ => non
+  end.
+
+Ltac fail_if_dup :=
+  find_dup_hyp ltac:(fun X => fail 1 "dup hypothesis" X) ltac:(idtac).
+
+
+Ltac clear_dups :=
+  repeat find_dup_hyp ltac:(fun X =>
+                              match goal with
+                              | [ H : X |- _ ] => clear H
+                              end) ltac:(fail).
+
+Ltac clear_tauto_eq :=
+  repeat match goal with [ H : ?X = ?X |- _ ] => clear H end.
+
+Ltac different t1 t2 :=
+  lazymatch t1 with
+  | t2 => fail
+  | _ => idtac
+  end.
+
+Tactic Notation "pose" hyp(H) "apply" uconstr(trm) :=
+  pose proof H; apply trm in H.
+
+Tactic Notation "pose" hyp(H) "eapply" uconstr(trm) :=
+  pose proof H; eapply trm in H.
+
+Ltac dup_eq :=
+  clear_tauto_eq;
+  lazymatch goal with
+  | [ _ : ?X = ?Y, _ : ?Y = ?X |- _ ] => fail
+  | [ _ : ?X = ?Y |- ?Y = ?X ] => fail
+  | _ => idtac
+  end.
+
+Ltac invert_eq H :=
+  invert H; subst; clear_tauto_eq; clear_dups.
 
 Ltac destruct_all :=
   repeat (destruct_one_pair || destruct_one_ex ||
@@ -305,19 +351,13 @@ Tactic Notation "reassoc" constr(n)
   doreassoc n (c1 :: c2 :: c3 :: c4 :: c5 :: nil) ltac:(tac).
 
 (* List Reassociation Ends Here. *)
-  
+
 Ltac try_discharge :=
   try congruence.
 
 Ltac careful_unfold :=
   autounfold in *;
   fold any not; fold_not_under_forall. (* we don't want to unfold not *)
-
-(* (** explicitly exclude iota to avoid unfolding fixpoint. *)
-(*  * see how well it would work. *) *)
-(* Ltac cbvβδζ := cbv beta delta zeta. *)
-
-(* Ltac cbnβδζ := cbn beta delta zeta. *)
 
 Ltac simplify :=
   simpl in *; cbn in *; subst;
@@ -338,8 +378,7 @@ Ltac progressive_destruction :=
   destruct_all;
   repeat (match goal with
          | [ H : Forall _ (_ :: _) |- _ ] => inversion H; clear H
-         | [ H : _ = (_, _) |- _ ] => inversion H; clear H
-         | [ H : (_, _) = _ |- _ ] => inversion H; clear H
+         | [ H : (_, _) = (_, _) |- _ ] => inversion H; clear H
          end; try congruence; subst).
 
 
@@ -400,6 +439,9 @@ Tactic Notation "routine" "hinted" tactic(tac) :=
 
 Tactic Notation "routine" := routine by ltac:(idtac).
 
+Tactic Notation "routine" "at" int(n) :=
+    routine_impl ltac:(idtac) ltac:(idtac; try assumption; try_discharge; auto n).
+
 Tactic Notation "eroutine" "by" tactic(prep)
        "hinted" tactic(tac)
        "at" int(n) := 
@@ -427,6 +469,35 @@ Tactic Notation "eroutine" "hinted" tactic(tac) :=
   eroutine hinted ltac:(idtac; tac) at 5.
 
 Tactic Notation "eroutine" := eroutine by ltac:(idtac).
+
+
+Tactic Notation "eroutine" "at" int(n) :=
+  routine_impl ltac:(idtac) ltac:(idtac; try assumption; try_discharge; eauto n).
+
+(** the point of this tactic is to switch goal to another one.
+ * consider a chain of implications: A => B, B => C,
+ * it's clear that implication is transitive relation.
+ * therefore, from A to C might be difficult, 
+ * while if B is given, the two parts might be able to discharged by 
+ * automated tactics.
+ *)
+Ltac prove_instead trm tac :=
+  intros; simplify;
+  assert trm;
+  match goal with
+  | [ H : trm |- ?G ] =>
+    tac
+  | _ => idtac (* we don't deal with trm *)
+  end.
+
+Tactic Notation "prove" constr(trm) "instead" "by[" tactic(tac) "]" :=
+  prove_instead trm tac.
+
+Tactic Notation "prove" constr(trm) "instead" :=
+  prove trm instead by[ routine ].
+
+Tactic Notation "eprove" constr(trm) "instead" :=
+  prove trm instead by[ eroutine ].
 
 (** try to prove a trm by routine, and then place it into context. *)
 Tactic Notation "induce" constr(trm) :=

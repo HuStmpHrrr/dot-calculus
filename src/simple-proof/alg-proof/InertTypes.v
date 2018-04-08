@@ -102,9 +102,25 @@ Hint Transparent inert_env.
  * for example:
  *)
 Section TrivialLemmas.
+
+  Hint Extern 1 =>
+  match goal with
+  | [ H: inert_typ _ |- _ ] => invert H
+  end.
   
   Lemma binds_inert : forall G x T, inert_env G -> binds x T G -> inert_typ T.
   Proof. induction G; eroutine. Qed.
+  Hint Resolve binds_inert.
+
+  Lemma inert_env_inert_decs : forall G x DS,
+      inert_env G ->
+      binds x (μ{ DS }) G ->
+      inert_decs DS.
+  Proof.
+    intros.
+    prove (inert_typ $ μ{ DS }) instead by[ auto ].
+    eroutine.
+  Qed.
   
   Lemma inert_concat : forall G G',
       inert_env G -> inert_env G' ->
@@ -124,6 +140,7 @@ Section TrivialLemmas.
   Proof. induction DS; [| destruct DS]; routine. Qed.
   Hint Resolve invert_inert_decs.
   Arguments invert_inert_decs {DS l D}.
+
   
   Lemma inert_decs_also_dec : forall DS A S T,
       inert_decs DS ->
@@ -132,10 +149,6 @@ Section TrivialLemmas.
   Proof. routine by context apply @invert_inert_decs. Qed.
   Local Hint Resolve inert_decs_also_dec.
 
-  Hint Extern 1 =>
-  match goal with
-  | [ H: inert_typ _ |- _ ] => invert H
-  end.
   
   Lemma binds_inert_obj : forall G x DS A S T,
       inert_env G ->
@@ -158,3 +171,63 @@ Section TrivialLemmas.
   
 End TrivialLemmas.
 Hint Resolve inert_concat invert_inert_decs inert_concat.
+
+
+(* Inert Related Tactics Goes Following *)
+
+Ltac recover_inert_env :=
+  repeat match goal with
+         | [ G : env |- _ ] =>
+           assert (inert_env G) by auto; fail_if_dup
+         end.
+
+Ltac inert_env_conseqs :=
+  repeat
+    match goal with
+    (* case 1: DS must be inert. *)
+    | [ H : inert_env ?G, H1 : binds _ (μ{ ?DS }) ?G |- _ ] =>
+      pose H1 apply inert_env_inert_decs; auto; fail_if_dup
+    (* case 2: something must be inert type. *)
+    | [ H : inert_env ?G, H1 : binds _ _ ?G |- _ ] =>
+      pose H1 apply binds_inert; auto; fail_if_dup
+    (* case 3: inert env is a uniq env *)
+    | [ H : inert_env ?G, H1 : binds ?x ?T1 ?G, H2 : binds ?x ?T2 ?G |- _ ] =>
+      different T1 T2;
+      assert (T1 = T2) by (fail_if_dup; dup_eq;
+                           eapply binds_unique; eassumption); subst
+    end.
+
+(** this tactic derives consequences from inert environment. *)
+Ltac from_inert_env :=
+  (* let's recover inert_env first. *)
+  clear_dups; recover_inert_env;
+  inert_env_conseqs.
+
+Ltac from_inert_typ :=
+  repeat match goal with
+  | [ H : inert_typ ?T |- _ ] =>
+    invert H; fail_if_dup; subst; clear_dups
+  end.
+
+Ltac from_inert_obj :=
+  repeat
+    match goal with
+    | [ H : μ{ ?DS1 } = μ{ ?DS2 } |- _ ] => invert_eq H
+    | [ H : dec_typ _ _ = dec_typ _ _ |- _ ] => invert_eq H
+    | [ H : inert_decs ?DS, H1 : lbinds ?x ?D1 (decs_to_list ?DS) |- _] =>
+      pose H1 eapply binds_inert_obj_lbinds;
+      try eassumption; destruct H1; fail_if_dup
+    | [ H : inert_decs ?DS,
+        H1 : lbinds ?x ?D1 (decs_to_list ?DS),
+        H2 : lbinds ?x ?D2 (decs_to_list ?DS) |- _ ] =>
+      different D1 D2;
+      assert (D1 = D2) by (fail_if_dup; dup_eq;
+                           eapply LabelAssocList.binds_unique; routine);
+      subst
+    end.
+
+Ltac from_inert :=
+  from_inert_env; clear_dups; from_inert_typ; from_inert_obj.
+
+Tactic Notation "prove" "from" "inert" := from_inert; routine.
+Tactic Notation "eprove" "from" "inert" := from_inert; eroutine.
