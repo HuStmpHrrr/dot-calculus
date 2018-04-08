@@ -1,3 +1,5 @@
+Set Implicit Arguments.
+
 Require Import Definitions Substitution.
 Require Import Coq.Lists.List.
 
@@ -109,6 +111,50 @@ Section TrivialLemmas.
       uniq (G' ++ G) ->
       inert_env (G' ++ G).
   Proof. routine. Qed.
+
+  Local Hint Extern 1 =>
+  match goal with
+  | [ H: inert_dec _ |- _ ] =>  invert H
+  end.
+
+  Lemma invert_inert_decs : forall DS l D,
+      inert_decs DS ->
+      lbinds l D DS ->
+      inert_dec (l, D).
+  Proof. induction DS; [| destruct DS]; routine. Qed.
+  Hint Resolve invert_inert_decs.
+  Arguments invert_inert_decs {DS l D}.
+  
+  Lemma inert_decs_also_dec : forall DS A S T,
+      inert_decs DS ->
+      lbinds (label_typ A) (dec_typ S T) DS ->
+      S = T.
+  Proof. routine by context apply @invert_inert_decs. Qed.
+  Local Hint Resolve inert_decs_also_dec.
+
+  Hint Extern 1 =>
+  match goal with
+  | [ H: inert_typ _ |- _ ] => invert H
+  end.
+  
+  Lemma binds_inert_obj : forall G x DS A S T,
+      inert_env G ->
+      binds x (μ{ DS }) G ->
+      lbinds (label_typ A) (dec_typ S T) DS ->
+      S = T.
+  Proof. induction G; eroutine. Qed.
+
+  Lemma binds_inert_obj_lbinds : forall G x DS A S T,
+      inert_env G ->
+      binds x (μ{ DS }) G ->
+      lbinds (label_typ A) (dec_typ S T) DS ->
+      lbinds A (dec_typ S S) DS /\ lbinds A (dec_typ T T) DS.
+  Proof.
+    routine by idtac; match goal with
+                      | [ H : binds _ _ _ |- _ ] =>
+                        eapply binds_inert_obj in H
+                      end.
+  Qed.
   
 End TrivialLemmas.
-Hint Resolve inert_concat.
+Hint Resolve inert_concat invert_inert_decs inert_concat.

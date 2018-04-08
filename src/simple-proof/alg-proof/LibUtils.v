@@ -6,8 +6,7 @@ Require Import Metalib.AssocList.
 Require Import Coq.Structures.Equalities.
 Require Import Coq.Lists.List.
 
-Require Import Program.Equality.
-
+Require Import Coq.Program.Equality.
 Require Import Coq.Program.Tactics.
 
 
@@ -104,23 +103,26 @@ Ltac solve_by_invert :=
   end.
 
 
-Ltac find_induction term :=
+Ltac find_induction tac term :=
   match goal with
   | [ |- forall _ : ?T, _ ] =>
     let H := fresh "H" in
     intro H;
     match type of H with
     | context[term] =>
-      induction H
+      tac H
     | _ => 
-      find_induction term
+      find_induction tac term
     end
   | [ |- _ ] =>
     fail 1 "cannot find an induction target of " term
   end.
 
 Tactic Notation "induction" "on" constr(term) :=
-  find_induction term.
+  find_induction ltac:(fun H => induction H) term.
+
+Tactic Notation "dep" "induction" "on" constr(term) :=
+  find_induction ltac:(fun H => dependent induction H) term.
 
 (** https://sympa.inria.fr/sympa/arc/coq-club/2018-03/msg00087.html *)
 Ltac fold_not_under_forall :=
@@ -174,10 +176,16 @@ Tactic Notation "eexrewrite" constr(lem) :=
   exexec lem ltac:(fun l => erewrite l).
 
 Tactic Notation "context" "apply" constr(lem) :=
-  match goal with [H : _ |- _ ] => apply lem in H end.
+  match goal with
+  | [H : ?P |- _ ] =>
+    match type of P with Prop => apply lem in H end
+  end.
 
 Tactic Notation "context" "eapply" constr(lem) :=
-  match goal with [H : _ |- _ ] => apply lem in H end.
+  match goal with
+  | [H : ?P |- _ ] =>
+    match type of P with Prop => eapply lem in H end
+  end.
 
 
 (** Tactics for list reassociation. *)
@@ -635,6 +643,10 @@ Hint Resolve luniq_one luniq_cons luniq_app luniq_map.
 Ltac ldestruct_uniq := LabelAssocList.destruct_uniq.
 Ltac lsolve_uniq := LabelAssocList.solve_uniq.
 
+(* TODO: this is purely wrong to have a timeout here.
+ * however, solve_uniq calls fsetdec which might not come back in
+ * near future. try to write another uniq solver.
+ *)
 Ltac luniq_routine :=
   try ldestruct_uniq;
   try match goal with [ |- luniq _ ] => timeout 2 lsolve_uniq end.
