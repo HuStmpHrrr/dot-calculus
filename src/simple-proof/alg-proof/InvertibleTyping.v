@@ -83,12 +83,9 @@ where "G ⊢##v v ⦂ T" := (ty_val_inv G v T).
 
 Tactic Notation "inv" "typing" "undec" "1" :=
   match goal with
-  | [ H : _ ⊢## _ ⦂ ⊥ |- _ ] => invert H
-  | [|- _ ⊢## _ ⦂ μ{ append _ _ }] => apply ty_obj_merge_inv
-  | [|- _ ⊢## _ ⦂ _ ⋅ _ ] => eapply ty_obj_sel_inv
   | [H : _ ⊢## _ ⦂ _ ⋅ _ |- _ ] => invert H
   | _ => idtac
-end.
+  end.
 
 
 Lemma invertible_typing_closure_tight: forall G x T U,
@@ -99,8 +96,19 @@ Lemma invertible_typing_closure_tight: forall G x T U,
 Proof.
   induction on subtypt; eroutine;
     inv typing undec 1;
-    prove from inert.
+    eprove from inert at 6.
 Qed.
+
+Lemma tight_to_invertible : forall G (x : var) U,
+    inert_env G ->
+    G ⊢# trm_var x ⦂ U ->
+    G ⊢## x ⦂ U.
+Proof.
+  dep induction on tyt_trm; auto.
+  eapply invertible_typing_closure_tight; try eassumption.
+  eauto.
+Qed.
+  
 
 
 (* Require Import Coq.Program.Equality. *)

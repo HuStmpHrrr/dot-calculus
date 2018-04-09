@@ -3,11 +3,18 @@ Set Implicit Arguments.
 Require Import Metalib.Metatheory.
 Require Import Metalib.AssocList.
 
-Require Import Coq.Structures.Equalities.
-Require Import Coq.Lists.List.
+Require Export Coq.Structures.Equalities.
+Require Export Coq.Lists.List.
 
-Require Import Coq.Program.Equality.
-Require Import Coq.Program.Tactics.
+Require Export Coq.Program.Equality.
+Require Export Coq.Program.Tactics.
+
+
+(** timeout in seconds for some tactic.
+ * TODO: we shall not need it. however, metalib provides nondeterministic
+ * tactics, which is somewhat difficult to get over with.
+ *)
+Ltac TIMEOUT := 2.
 
 
 Notation "f $ x" := ((f) (x)) (at level 68, right associativity, only parsing).
@@ -15,6 +22,8 @@ Notation "f $ x" := ((f) (x)) (at level 68, right associativity, only parsing).
 Notation "<[ e1 ; .. ; en ]>" := (cons e1 .. (cons en nil) .. ) (at level 39).
 
 (** Some Tactics *)
+
+(** Util Tactics *)
 
 Tactic Notation "gen" ident(x) := generalize dependent x.
 Tactic Notation "gen" ident(x) ident(y) := gen x; gen y.
@@ -63,7 +72,7 @@ Ltac clear_dups :=
   repeat find_dup_hyp ltac:(fun X =>
                               match goal with
                               | [ H : X |- _ ] => clear H
-                              end) ltac:(fail).
+                              end) ltac:(idtac).
 
 Ltac clear_tauto_eq :=
   repeat match goal with [ H : ?X = ?X |- _ ] => clear H end.
@@ -91,13 +100,33 @@ Ltac dup_eq :=
 Ltac invert_eq H :=
   invert H; subst; clear_tauto_eq; clear_dups.
 
-Ltac destruct_all :=
-  repeat (destruct_one_pair || destruct_one_ex ||
-          match goal with
-          | [ H : ?X \/ ?Y |- _ ] => destruct H
-          | [ ev : { _ } + { _ } |- _ ] => destruct ev
-          | [ ev : _ + { _ } |- _ ] => destruct ev
-          end).
+Ltac progressive_inversion :=
+  match goal with
+  | [ H : ?T |- _ ] =>
+    lazymatch type of T with
+    | Prop =>
+      let x := numgoals in
+      inversion H;
+      fail_if_dup;
+      let y := numgoals in
+      guard x = y;
+      subst; clear_tauto_eq; clear_dups
+    end
+  end.
+
+Ltac progressive_inversions :=
+  clear_dups;
+  repeat progressive_inversion.
+
+Ltac destruct_logic :=
+  destruct_one_pair || destruct_one_ex ||
+                    match goal with
+                    | [ H : ?X \/ ?Y |- _ ] => destruct H
+                    | [ ev : { _ } + { _ } |- _ ] => destruct ev
+                    | [ ev : _ + { _ } |- _ ] => destruct ev
+                    end.
+
+Ltac destruct_all := repeat destruct_logic.
 
 Ltac destruct_eq :=
   simpl;
@@ -215,19 +244,19 @@ Ltac exexec lem tac :=
   | _ => tac lem
   end.
 
-Tactic Notation "exrewrite" constr(lem) :=
+Tactic Notation "exrewrite" uconstr(lem) :=
   exexec lem ltac:(fun l => rewrite l).
 
-Tactic Notation "eexrewrite" constr(lem) :=
+Tactic Notation "eexrewrite" uconstr(lem) :=
   exexec lem ltac:(fun l => erewrite l).
 
-Tactic Notation "context" "apply" constr(lem) :=
+Tactic Notation "context" "apply" uconstr(lem) :=
   match goal with
   | [H : ?P |- _ ] =>
     match type of P with Prop => apply lem in H end
   end.
 
-Tactic Notation "context" "eapply" constr(lem) :=
+Tactic Notation "context" "eapply" uconstr(lem) :=
   match goal with
   | [H : ?P |- _ ] =>
     match type of P with Prop => eapply lem in H end
@@ -374,12 +403,15 @@ Ltac direct_app :=
   repeat destruct_eq; destruct_all.
 
 Ltac progressive_destruction :=
-  repeat destruct_eq;
-  destruct_all;
-  repeat (match goal with
+  destruct_eq || destruct_logic
+  || (clear_dups; progressive_inversion)
+  || (match goal with
          | [ H : Forall _ (_ :: _) |- _ ] => inversion H; clear H
          | [ H : (_, _) = (_, _) |- _ ] => inversion H; clear H
-         end; try congruence; subst).
+     end; try congruence; subst).
+
+Ltac progressive_destructions :=
+  repeat progressive_destruction.
 
 
 (** These tactics are for further modifications such that routine tactic can
@@ -399,7 +431,7 @@ Ltac routine_impl prep tac :=
   try solve_by_invert;
   prep;
   simplify;
-  progressive_destruction;
+  progressive_destructions;
   simplify;
   (* (repeat f_equal) is too aggressive. we might over do it.
    * the workaround is to trivial to solve goal heuristically and 
@@ -720,8 +752,8 @@ Ltac lsolve_uniq := LabelAssocList.solve_uniq.
  *)
 Ltac luniq_routine :=
   try ldestruct_uniq;
-  try match goal with [ |- luniq _ ] => timeout 2 lsolve_uniq end.
-                         
+  try match goal with [ |- luniq _ ] => let s := TIMEOUT in timeout s lsolve_uniq end.
+
 Ltac routine_subtac1 ::= luniq_routine.
 
 (* OTHER HINTS *)

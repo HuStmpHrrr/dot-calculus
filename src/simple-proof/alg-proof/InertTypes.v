@@ -146,7 +146,7 @@ Section TrivialLemmas.
       inert_decs DS ->
       lbinds (label_typ A) (dec_typ S T) DS ->
       S = T.
-  Proof. routine by context apply @invert_inert_decs. Qed.
+  Proof. routine by context apply invert_inert_decs. Qed.
   Local Hint Resolve inert_decs_also_dec.
 
   
@@ -203,31 +203,25 @@ Ltac from_inert_env :=
   clear_dups; recover_inert_env;
   inert_env_conseqs.
 
-Ltac from_inert_typ :=
-  repeat match goal with
-  | [ H : inert_typ ?T |- _ ] =>
-    invert H; fail_if_dup; subst; clear_dups
-  end.
-
 Ltac from_inert_obj :=
   repeat
-    match goal with
-    | [ H : μ{ ?DS1 } = μ{ ?DS2 } |- _ ] => invert_eq H
-    | [ H : dec_typ _ _ = dec_typ _ _ |- _ ] => invert_eq H
-    | [ H : inert_decs ?DS, H1 : lbinds ?x ?D1 (decs_to_list ?DS) |- _] =>
-      pose H1 eapply binds_inert_obj_lbinds;
-      try eassumption; destruct H1; fail_if_dup
-    | [ H : inert_decs ?DS,
-        H1 : lbinds ?x ?D1 (decs_to_list ?DS),
-        H2 : lbinds ?x ?D2 (decs_to_list ?DS) |- _ ] =>
-      different D1 D2;
-      assert (D1 = D2) by (fail_if_dup; dup_eq;
-                           eapply LabelAssocList.binds_unique; routine);
-      subst
-    end.
+    (progressive_destruction
+     || match goal with
+       | [ H : inert_decs ?DS, H1 : lbinds ?x ?D1 (decs_to_list ?DS) |- _] =>
+         pose H1 eapply binds_inert_obj_lbinds;
+         try eassumption; destruct H1; fail_if_dup
+       | [ H : inert_decs ?DS,
+               H1 : lbinds ?x ?D1 (decs_to_list ?DS),
+                    H2 : lbinds ?x ?D2 (decs_to_list ?DS) |- _ ] =>
+         different D1 D2;
+         assert (D1 = D2) by (fail_if_dup; dup_eq;
+                              eapply LabelAssocList.binds_unique; routine);
+         subst
+       end).
 
 Ltac from_inert :=
-  from_inert_env; clear_dups; from_inert_typ; from_inert_obj.
+  from_inert_env; clear_dups; from_inert_obj.
 
 Tactic Notation "prove" "from" "inert" := from_inert; routine.
 Tactic Notation "eprove" "from" "inert" := from_inert; eroutine.
+Tactic Notation "eprove" "from" "inert" "at" "6" := from_inert; eroutine at 6.
