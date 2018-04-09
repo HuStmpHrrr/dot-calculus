@@ -75,11 +75,6 @@ module _ {a} {A : Set a} where
   ∈-witness [] _ l₂        = found l₂
   ∈-witness (x ∷ l₁) x′ l₂ = skip x $ ∈-witness l₁ x′ l₂
 
-  data uniq : List A → Set a where
-    instance
-      empty : uniq []
-      grow  : ∀ {h l} → h ∉ l → uniq l → uniq $ h ∷ l
-
   infix 4 _⊆_  _⊈_  _⊆?_  _≋_  _!≋_  _≋?_  _⊂_  _⊄_  _⊂?_
   -- subset relation
   data _⊆_ : List A → List A → Set a where
@@ -241,10 +236,6 @@ module _ {a} {A : Set a} where
 
   _⁺⊈⁺_ : List⁺ A → List⁺ A → Set a
   l ⁺⊈⁺ l′ = ¬ (l ⁺⊆⁺ l′)
-
-  record uniq⁺ (l : List⁺ A) : Set a where
-    field
-      uq : uniq $ toList l
 
   ++⁺≡++⁺′ : ∀ l₁ l₂ → l₁ ++⁺ l₂ ≡ l₁ ++⁺′ l₂
   ++⁺≡++⁺′ [] l₂ = refl
