@@ -197,8 +197,7 @@ Section OpeningDefinition.
       decs_cons l (open_rec_dec k u D) $ open_rec_decs k u DS'
     end.
   
-  (**
-   * we need this function in order to open an object by its own.
+  (** we need this function in order to open an object by its own.
    *)
   Definition open_typ_to_context (u : var) (T : typ) : typ :=
     match T with
@@ -375,6 +374,15 @@ Inductive ty_trm : env -> trm -> typ -> Prop :=
     G ⊢ t ⦂ T ->
     G ⊢ T <⦂ U ->
     G ⊢ t ⦂ U
+| ty_sub_fld : forall G (x : atom) a T (DS1 DS2 : decs) U,
+    G ⊢ trm_var x ⦂ μ{ append DS1 $ decs_cons (label_trm a) (dec_trm T) DS2 } ->
+    G ⊢ T <⦂ U ->
+    G ⊢ trm_var x ⦂ μ{ append DS1 $ decs_cons (label_trm a) (dec_trm U) DS2 }
+| ty_sub_typ : forall G (x : atom) A (DS1 DS2 : decs) S1 T1 S2 T2,
+    G ⊢ trm_var x ⦂ μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 } ->
+    G ⊢ S2 <⦂ S1 ->
+    G ⊢ T1 <⦂ T2 ->
+    G ⊢ trm_var x ⦂ μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S2 T2) DS2 }
 where "G ⊢ t ⦂ T" := (ty_trm G t T) : type_scope
 with
 ty_def : env -> (label * def) -> dec -> Prop :=
@@ -411,25 +419,6 @@ subtyp : env -> typ -> typ -> Prop :=
     (forall x, x `notin` L ->
        x ~ S2 ++ G ⊢ open x T1 <⦂ open x T2) ->
     G ⊢ all(S1) T1 <⦂ all(S2) T2
-| subtyp_fld : forall L G a T (DS1 DS2 : decs) U,
-    (forall x, x `notin` L ->
-          x ~ open_typ_to_context x
-            (μ{ append DS1 $ decs_cons (label_trm a) (dec_trm T) DS2 }) ++
-            G ⊢ T <⦂ U) ->
-    G ⊢ μ{ append DS1 $ decs_cons (label_trm a) (dec_trm T) DS2 }
-      <⦂ μ{ append DS1 $ decs_cons (label_trm a) (dec_trm U) DS2 } (* DS[a := U] *)
-| subtyp_typ : forall L G A (DS1 DS2 : decs) S1 T1 S2 T2,
-    (forall x, x `notin` L ->
-          x ~ open_typ_to_context x
-            (μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }) ++
-            G ⊢ S2 <⦂ S1) ->
-    (forall y, y `notin` L ->
-          y ~ open_typ_to_context y
-            (μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }) ++
-            G ⊢ T1 <⦂ T2) ->
-    G ⊢ μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }
-      <⦂ μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S2 T2) DS2 }
-      (* DS[A := S2 .. T2] *)
 | subtyp_drop1 : forall G (DS1 : decs) (DS2 : decs),
     not_empty DS1 ->
     not_empty DS2 ->
@@ -549,16 +538,19 @@ Tactic Notation "ensure" "trm" constr(t) :=
   end.
 
 (** The first kind of undecidability for typing. see if we can hit more. *)
-Tactic Notation "typing" "undec" "1" :=
-  match goal with
-  | [ |- _ ⊢ _ ⦂ _ ] => econstructor
-  | [ |- context[typ_all] ] => eapply subtyp_all
-  | [ |- context[dec_trm]] => eapply subtyp_fld
-  | [ |- context[dec_typ]] => eapply subtyp_typ
-  | [ |- context[ _ ⊢ _ <⦂ _ ⋅ _]] => eapply subtyp_sel1
-  | [ |- context[ _ ⊢ _ ⋅ _ <⦂ _]] => eapply subtyp_sel2
-  | _ => idtac
-  end.
+  Tactic Notation "typing" "undec" "1" :=
+    match goal with
+    | [ |- _ ⊢ _ ⦂ _ ] =>
+      match goal with
+      | [|- context[dec_trm]] => eapply ty_sub_fld
+      | [|- context[dec_typ]] => eapply ty_sub_typ
+      | _ => econstructor
+      end
+    | [ |- context[typ_all] ] => eapply subtyp_all
+    | [ |- context[ _ ⊢ _ <⦂ _ ⋅ _]] => eapply subtyp_sel1
+    | [ |- context[ _ ⊢ _ ⋅ _ <⦂ _]] => eapply subtyp_sel2
+    | _ => idtac
+    end.
 
 (** convert decs and defs problems to lists problems *)
 Ltac list_reasoning :=

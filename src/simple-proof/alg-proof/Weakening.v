@@ -14,7 +14,7 @@ Section Weakening.
    * to understand what's the condition for discharging 
    * both ty rules and subtyp rules.
    *)
-
+  
   (** this tactic massages the goal and then apply the
    * proper induction hypothesis in the context *)
   Local Ltac ind_massage :=

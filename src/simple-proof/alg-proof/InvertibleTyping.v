@@ -23,24 +23,17 @@ Inductive ty_var_inv : env -> atom -> typ -> Prop :=
     G ⊢## x ⦂ μ{ DS1 } ->
     G ⊢## x ⦂ μ{ DS2 } ->
     G ⊢## x ⦂ μ{ append DS1 DS2 }
-| ty_obj_fld_inv : forall L G x a T (DS1 DS2 : decs) U,
+
+| ty_obj_fld_inv : forall G x a T (DS1 DS2 : decs) U,
     G ⊢## x ⦂ μ{ append DS1 $ decs_cons (label_trm a) (dec_trm T) DS2 } ->
-    (forall x, x `notin` L ->
-          x ~ open_typ_to_context x
-            (μ{ append DS1 $ decs_cons (label_trm a) (dec_trm T) DS2 }) ++
-            G ⊢ T <⦂ U) ->
+    G ⊢# T <⦂ U ->
     G ⊢## x ⦂ μ{ append DS1 $ decs_cons (label_trm a) (dec_trm U) DS2 }
-| ty_obj_typ_inv : forall L G x A (DS1 DS2 : decs) S1 T1 S2 T2,
+| ty_obj_typ_inv : forall G (x : atom) A (DS1 DS2 : decs) S1 T1 S2 T2,
     G ⊢## x ⦂ μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 } ->
-    (forall x, x `notin` L ->
-          x ~ open_typ_to_context x
-            (μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }) ++
-            G ⊢ S2 <⦂ S1) ->
-    (forall y, y `notin` L ->
-          y ~ open_typ_to_context y
-            (μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S1 T1) DS2 }) ++
-            G ⊢ T1 <⦂ T2) ->
+    G ⊢# S2 <⦂ S1 ->
+    G ⊢# T1 <⦂ T2 ->
     G ⊢## x ⦂ μ{ append DS1 $ decs_cons (label_typ A) (dec_typ S2 T2) DS2 }
+
 | ty_obj_sel_inv : forall G x y DS S A,
     G ⊢## x ⦂ S ->
     binds y (μ{ DS }) G ->
@@ -50,7 +43,7 @@ Inductive ty_var_inv : env -> atom -> typ -> Prop :=
     G ⊢## x ⦂ all(S1) T1 ->
     G ⊢# S2 <⦂ S1 ->
     (forall x, x `notin` L ->
-       x ~ S1 ++ G ⊢ open x T1 <⦂ open x T2) ->
+       x ~ S2 ++ G ⊢ open x T1 <⦂ open x T2) ->
     G ⊢## x ⦂ all(S2) T2
 | ty_top_inv : forall G x T,
     G ⊢## x ⦂ T ->
