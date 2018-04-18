@@ -49,7 +49,7 @@ subtypt : env -> typ -> typ -> Prop :=
 | subtypt_all: forall L G S1 T1 S2 T2,
     G ⊢# S2 <⦂ S1 ->
     (forall x, x `notin` L ->
-       x ~ S1 ++ G ⊢ open x T1 <⦂ open x T2) ->
+       x ~ S2 ++ G ⊢ open x T1 <⦂ open x T2) ->
     G ⊢# typ_all S1 T1 <⦂ typ_all S2 T2
 | subtypt_fld : forall L G a T (DS1 DS2 : decs) U,
     (forall x, x `notin` L ->
@@ -88,11 +88,11 @@ subtypt : env -> typ -> typ -> Prop :=
 | subtypt_sel1 : forall G x A DS S T,
     binds x (μ{ DS }) G ->
     lbinds (label_typ A) (dec_typ S T) DS ->
-    G ⊢# S <⦂ typ_sel (avar_f x) A
+    G ⊢# S <⦂ (avar_f x) ⋅ A
 | subtypt_sel2 : forall G x A DS S T,
     binds x (μ{ DS }) G ->
     lbinds (label_typ A) (dec_typ S T) DS ->
-    G ⊢# typ_sel (avar_f x) A <⦂ T
+    G ⊢# (avar_f x) ⋅ A <⦂ T
 where "G ⊢# T <⦂ U" := (subtypt G T U) : type_scope.
 Hint Constructors tyt_trm subtypt.
 

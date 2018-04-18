@@ -109,7 +109,7 @@ Ltac progressive_inversion :=
       inversion H;
       fail_if_dup;
       let y := numgoals in
-      guard x = y;
+      guard x >= y;
       subst; clear_tauto_eq; clear_dups
     end
   end.
@@ -178,7 +178,7 @@ Ltac solve_by_invert :=
   end.
 
 
-Ltac find_induction tac term :=
+Ltac find_intro tac term :=
   match goal with
   | [ |- forall _ : ?T, _ ] =>
     let H := fresh "H" in
@@ -187,23 +187,26 @@ Ltac find_induction tac term :=
     | context[term] =>
       tac H
     | _ => 
-      find_induction tac term
+      find_intro tac term
     end
   | [ |- _ ] =>
     fail 1 "cannot find an induction target of " term
   end.
 
 Tactic Notation "induction" "on" constr(term) :=
-  find_induction ltac:(fun H => induction H) term.
+  find_intro ltac:(fun H => induction H) term.
 
 Tactic Notation "dep" "induction" "on" constr(term) :=
-  find_induction ltac:(fun H => dependent induction H) term.
+  find_intro ltac:(fun H => dependent induction H) term.
 
 (** https://sympa.inria.fr/sympa/arc/coq-club/2018-03/msg00087.html *)
 Ltac fold_not_under_forall :=
    repeat
      match goal with
      | H : forall n : ?T, @?x n |- _ =>
+       match type of H with
+       | context[False] => idtac
+       end;
        match x with
        | fun n : T => ?b =>
          let not_n := fresh in
@@ -250,13 +253,13 @@ Tactic Notation "exrewrite" uconstr(lem) :=
 Tactic Notation "eexrewrite" uconstr(lem) :=
   exexec lem ltac:(fun l => erewrite l).
 
-Tactic Notation "context" "apply" uconstr(lem) :=
+Tactic Notation "contextual" "apply" uconstr(lem) :=
   match goal with
   | [H : ?P |- _ ] =>
     match type of P with Prop => apply lem in H end
   end.
 
-Tactic Notation "context" "eapply" uconstr(lem) :=
+Tactic Notation "contextual" "eapply" uconstr(lem) :=
   match goal with
   | [H : ?P |- _ ] =>
     match type of P with Prop => eapply lem in H end
@@ -404,11 +407,10 @@ Ltac direct_app :=
 
 Ltac progressive_destruction :=
   destruct_eq || destruct_logic
-  || (clear_dups; progressive_inversion)
   || (match goal with
-         | [ H : Forall _ (_ :: _) |- _ ] => inversion H; clear H
          | [ H : (_, _) = (_, _) |- _ ] => inversion H; clear H
-     end; try congruence; subst).
+     end; try congruence; subst)
+  || (clear_dups; progressive_inversion).
 
 Ltac progressive_destructions :=
   repeat progressive_destruction.

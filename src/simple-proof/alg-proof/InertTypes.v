@@ -12,7 +12,7 @@ Hint Constructors inert_dec.
 Definition inert_decs (DS : decs) :=
   not_empty DS /\ luniq DS /\ Forall inert_dec DS.
 Hint Unfold inert_decs.
-Hint Transparent inert_decs.
+(* Hint Transparent inert_decs. *)
 
 
 Lemma ty_defs_same_atoms : forall G ds DS,
@@ -64,7 +64,7 @@ Section InertObj.
       inert_dec (l, D).
   Proof.
     destr on dec; routine by invert on inert_dec.
-    context apply open_fresh_inj_typ_dec_decs; routine.
+    contextual apply open_fresh_inj_typ_dec_decs; routine.
   Qed.
   Local Hint Resolve open_dec_invert_inert.
   
@@ -93,7 +93,7 @@ Hint Constructors inert_typ.
 Definition inert_env (G : env) : Prop :=
   Forall (fun tup : (atom * typ) => let (_, t) := tup in inert_typ t) G /\ uniq G.
 Hint Unfold inert_env.
-Hint Transparent inert_env.
+(* Hint Transparent inert_env. *)
 
 
 (* This form of inert definitions automatically turn lots
@@ -146,7 +146,7 @@ Section TrivialLemmas.
       inert_decs DS ->
       lbinds (label_typ A) (dec_typ S T) DS ->
       S = T.
-  Proof. routine by context apply invert_inert_decs. Qed.
+  Proof. routine by contextual apply invert_inert_decs. Qed.
   Local Hint Resolve inert_decs_also_dec.
 
   
@@ -187,18 +187,19 @@ Ltac inert_env_conseqs :=
     (* case 1: DS must be inert. *)
     | [ H : inert_env ?G, H1 : binds _ (μ{ ?DS }) ?G |- _ ] =>
       pose H1 apply inert_env_inert_decs; auto; fail_if_dup
-    (* case 2: something must be inert type. *)
-    | [ H : inert_env ?G, H1 : binds _ _ ?G |- _ ] =>
-      pose H1 apply binds_inert; auto; fail_if_dup
-    (* case 3: inert env is a uniq env *)
+    (* case 2: inert env is a uniq env *)
     | [ H : inert_env ?G, H1 : binds ?x ?T1 ?G, H2 : binds ?x ?T2 ?G |- _ ] =>
       different T1 T2;
       assert (T1 = T2) by (fail_if_dup; dup_eq;
                            eapply binds_unique; eassumption); subst
+    (* case 3: something must be inert type. *)
+    | [ H : inert_env ?G, H1 : binds _ _ ?G |- _ ] =>
+      pose H1 apply binds_inert; auto; fail_if_dup
     end.
 
 (** this tactic derives consequences from inert environment. *)
 Ltac from_inert_env :=
+  progressive_destructions;
   (* let's recover inert_env first. *)
   clear_dups; recover_inert_env;
   inert_env_conseqs.
@@ -207,16 +208,16 @@ Ltac from_inert_obj :=
   repeat
     (progressive_destruction
      || match goal with
-       | [ H : inert_decs ?DS, H1 : lbinds ?x ?D1 (decs_to_list ?DS) |- _] =>
-         pose H1 eapply binds_inert_obj_lbinds;
-         try eassumption; destruct H1; fail_if_dup
        | [ H : inert_decs ?DS,
-               H1 : lbinds ?x ?D1 (decs_to_list ?DS),
-                    H2 : lbinds ?x ?D2 (decs_to_list ?DS) |- _ ] =>
+           H1 : lbinds ?x ?D1 (decs_to_list ?DS),
+           H2 : lbinds ?x ?D2 (decs_to_list ?DS) |- _ ] =>
          different D1 D2;
          assert (D1 = D2) by (fail_if_dup; dup_eq;
                               eapply LabelAssocList.binds_unique; routine);
          subst
+       | [ H : inert_decs ?DS, H1 : lbinds ?x ?D1 (decs_to_list ?DS) |- _] =>
+         pose H1 eapply binds_inert_obj_lbinds;
+         try eassumption; destruct H1; fail_if_dup
        end).
 
 Ltac from_inert :=

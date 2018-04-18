@@ -67,7 +67,7 @@ Instance DecsList : ListIso (label * dec) decs :=
   }.
 Proof.
   all:induction on decs || induction on list; routine.
-Qed.
+Defined.
 
 Coercion decs_to_list : decs >-> list.
 
@@ -143,7 +143,7 @@ Instance DefsList : ListIso (label * def) defs :=
   }.
 Proof.
   all:induction on defs || induction on list; routine.
-Qed.
+Defined.
 
 Coercion defs_to_list : defs >-> list.
 
@@ -409,7 +409,7 @@ subtyp : env -> typ -> typ -> Prop :=
 | subtyp_all: forall L G S1 T1 S2 T2,
     G ⊢ S2 <⦂ S1 ->
     (forall x, x `notin` L ->
-       x ~ S1 ++ G ⊢ open x T1 <⦂ open x T2) ->
+       x ~ S2 ++ G ⊢ open x T1 <⦂ open x T2) ->
     G ⊢ all(S1) T1 <⦂ all(S2) T2
 | subtyp_fld : forall L G a T (DS1 DS2 : decs) U,
     (forall x, x `notin` L ->
@@ -559,3 +559,43 @@ Tactic Notation "typing" "undec" "1" :=
   | [ |- context[ _ ⊢ _ ⋅ _ <⦂ _]] => eapply subtyp_sel2
   | _ => idtac
   end.
+
+(** convert decs and defs problems to lists problems *)
+Ltac list_reasoning :=
+  repeat
+    match goal with
+    | [ |- context[decs_cons ?A ?D ?DS]] =>
+      different DS decs_nil;
+      change (decs_cons A D DS) with (append (decs_cons A D decs_nil) DS)
+    | [H : context[decs_cons ?A ?D ?DS] |- _] =>
+      different DS decs_nil;
+      change (decs_cons A D DS) with (append (decs_cons A D decs_nil) DS) in H
+    | [ |- context[decs_append ?L1 ?L2] ] =>
+      change (decs_append L1 L2) with (append L1 L2)
+    | [H : context[decs_append ?L1 ?L2] |- _ ] =>
+      change (decs_append L1 L2) with (append L1 L2) in H
+    | [ |- context[decs_to_list ?L] ] =>
+      change (decs_to_list L) with (to_list L)
+    | [H : context[decs_to_list ?L] |- _ ] =>
+      change (decs_to_list L) with (to_list L) in H
+
+    | [ |- context[defs_cons ?A ?D ?DS]] =>
+      different DS defs_nil;
+      change (defs_cons A D DS) with (append (defs_cons A D defs_nil) DS)
+    | [H : context[defs_cons ?A ?D ?DS] |- _] =>
+      different DS defs_nil;
+      change (defs_cons A D DS) with (append (defs_cons A D defs_nil) DS) in H
+    | [ |- context[defs_append ?L1 ?L2] ] =>
+      change (defs_append L1 L2) with (append L1 L2)
+    | [H : context[defs_append ?L1 ?L2] |- _ ] =>
+      change (defs_append L1 L2) with (append L1 L2) in H
+    | [ |- context[defs_to_list ?L] ] =>
+      change (defs_to_list L) with (to_list L)
+    | [H : context[defs_to_list ?L] |- _ ] =>
+      change (defs_to_list L) with (to_list L) in H
+
+    | [ |- context[to_list] ] =>
+      rewrite append_sound
+    | [H : context[to_list] |- _ ] =>
+      rewrite append_sound in H
+    end.
