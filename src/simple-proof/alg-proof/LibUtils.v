@@ -453,68 +453,68 @@ Ltac routine_impl prep tac :=
   routine_subtac2;
   tac.
 
+Ltac routine_entry prep tac :=
+  routine_impl prep ltac:(idtac; tac; try assumption; try congruence).
+
+Ltac eroutine_entry prep tac :=
+  routine_impl prep ltac:(idtac; tac; try eassumption; try congruence).
+
+
 Tactic Notation "routine" "by" tactic(prep)
        "hinted" tactic(tac)
-       "at" int(n) := 
-  routine_impl prep ltac:(idtac; tac; try assumption; try_discharge; auto n).
+       "at" int(n) :=
+  routine_entry prep tac; auto n.
 
 Tactic Notation "routine" "by" tactic(prep) "hinted" tactic(tac) :=
-  routine by ltac:(idtac; prep) hinted tac at 5.
+  routine_entry prep tac; auto.
 
 Tactic Notation "routine" "by" tactic(prep)
-       "at" int(n) := 
-  routine_impl prep ltac:(idtac; try assumption; try_discharge; auto n).
+       "at" int(n) :=
+  routine_entry prep ltac:(idtac); auto n.
 
 Tactic Notation "routine" "hinted" tactic(tac)
-       "at" int(n) := 
-  routine_impl ltac:(idtac)
-               ltac:(idtac; tac; try assumption; try_discharge; auto n).
+       "at" int(n) :=
+  routine_entry ltac:(idtac) tac; auto n.
 
 Tactic Notation "routine" "hinted" tactic(tac) :=
-  routine by ltac:(idtac) hinted ltac:(idtac; tac).
+  routine hinted tac at 5.
 
 Tactic Notation "routine" "by" tactic(prep) :=
   routine by ltac:(idtac; prep) at 5.
 
-Tactic Notation "routine" "hinted" tactic(tac) :=
-  routine hinted ltac:(idtac; tac) at 5.
-
-Tactic Notation "routine" := routine by ltac:(idtac).
-
 Tactic Notation "routine" "at" int(n) :=
-    routine_impl ltac:(idtac) ltac:(idtac; try assumption; try_discharge; auto n).
+  routine_entry ltac:(idtac) ltac:(idtac); auto n.
+
+Tactic Notation "routine" := routine at 5.
+
 
 Tactic Notation "eroutine" "by" tactic(prep)
        "hinted" tactic(tac)
-       "at" int(n) := 
-  routine_impl prep ltac:(idtac; tac; try assumption; try_discharge; eauto n).
+       "at" int(n) :=
+  eroutine_entry prep tac; eauto n.
 
 Tactic Notation "eroutine" "by" tactic(prep) "hinted" tactic(tac) :=
-  eroutine by ltac:(idtac; prep) hinted tac at 5.
+  eroutine_entry prep tac; eauto.
 
 Tactic Notation "eroutine" "by" tactic(prep)
-       "at" int(n) := 
-  routine_impl prep ltac:(idtac; try assumption; try_discharge; eauto n).
+       "at" int(n) :=
+  eroutine_entry prep ltac:(idtac); eauto n.
 
 Tactic Notation "eroutine" "hinted" tactic(tac)
-       "at" int(n) := 
-  routine_impl ltac:(idtac)
-               ltac:(idtac; tac; try assumption; try_discharge; eauto n).
+       "at" int(n) :=
+  eroutine_entry ltac:(idtac) tac; eauto n.
 
 Tactic Notation "eroutine" "hinted" tactic(tac) :=
-  eroutine by ltac:(idtac) hinted ltac:(idtac; tac).
+  eroutine hinted tac at 5.
 
 Tactic Notation "eroutine" "by" tactic(prep) :=
   eroutine by ltac:(idtac; prep) at 5.
 
-Tactic Notation "eroutine" "hinted" tactic(tac) :=
-  eroutine hinted ltac:(idtac; tac) at 5.
-
-Tactic Notation "eroutine" := eroutine by ltac:(idtac).
-
-
 Tactic Notation "eroutine" "at" int(n) :=
-  routine_impl ltac:(idtac) ltac:(idtac; try assumption; try_discharge; eauto n).
+  eroutine_entry ltac:(idtac) ltac:(idtac); eauto n.
+
+Tactic Notation "eroutine" := eroutine at 5.
+
 
 (** the point of this tactic is to switch goal to another one.
  * consider a chain of implications: A => B, B => C,

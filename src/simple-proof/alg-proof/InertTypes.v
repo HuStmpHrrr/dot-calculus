@@ -225,4 +225,5 @@ Ltac from_inert :=
 
 Tactic Notation "prove" "from" "inert" := from_inert; routine.
 Tactic Notation "eprove" "from" "inert" := from_inert; eroutine.
-Tactic Notation "eprove" "from" "inert" "at" "6" := from_inert; eroutine at 6.
+Tactic Notation "eprove" "from" "inert" "at" int(n) :=
+  from_inert; eroutine_entry ltac:(idtac) ltac:(idtac); eauto n.
