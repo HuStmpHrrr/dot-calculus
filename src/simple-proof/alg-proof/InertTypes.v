@@ -217,7 +217,7 @@ Ltac from_inert_obj :=
          subst
        | [ H : inert_decs ?DS, H1 : lbinds ?x ?D1 (decs_to_list ?DS) |- _] =>
          pose H1 eapply binds_inert_obj_lbinds;
-         try eassumption; destruct H1; fail_if_dup
+         try eassumption; destruct_all; fail_if_dup
        end).
 
 Ltac from_inert :=

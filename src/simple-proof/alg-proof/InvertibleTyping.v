@@ -100,6 +100,11 @@ Section InvertibleTyping.
       G ⊢## x ⦂ U.
   Proof. dep induction on tyt_trm; eauto. Qed.
 
+  (* Following lemma is quite a bit difficult to deal with,
+   * and it seems to expose a different style of undecidability,
+   * which requires more customization. 
+   *)
+  
   Ltac boom :=
     destruct_lbinds;
     try match goal with
@@ -133,35 +138,17 @@ Section InvertibleTyping.
   Qed.
 
 End InvertibleTyping.
+Local Hint Resolve tight_to_invertible.
 
-(* Lemma general_to_tight : *)
-(*   forall G0, inert_env G0 -> *)
-(*         (forall G t T, G ⊢ t ⦂ T -> *)
-(*                   G = G0 -> *)
-(*                   G ⊢# t ⦂ T) /\ *)
-(*         (forall G S U, G ⊢ S <⦂ U -> *)
-(*                   G = G0 -> *)
-(*                   G ⊢# S <⦂ U). *)
-(* Proof. *)
-(*   mutual induction; eroutine. *)
-
-(*   (* we need to prove inert_env gives a good binding *) *)
-(*   specialize (H0 eq_refl). *)
-
-
-(*   invert H0; eauto. *)
-(*   subst. *)
-
-  
-(*   eauto.  *)
-  
-(*   eapply subtypt_sel1. *)
-  
-  
-(*   tight typing undec 1; routine. *)
-(*   apply H1. *)
-  
-(*   eapply subtypt_all; auto. *)
-
-  
-(*   tight typing undec 1; eroutine. *)
+Lemma general_to_tight :
+  forall G0, inert_env G0 ->
+        (forall G t T, G ⊢ t ⦂ T ->
+                  G = G0 ->
+                  G ⊢# t ⦂ T) /\
+        (forall G S U, G ⊢ S <⦂ U ->
+                  G = G0 ->
+                  G ⊢# S <⦂ U).
+Proof.
+  mutual induction; eroutine;
+    eapply inert_intuitive_subtyping; eauto.
+Qed.

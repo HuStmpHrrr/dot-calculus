@@ -90,10 +90,10 @@ Ltac different t1 t2 :=
   end.
 
 Tactic Notation "pose" hyp(H) "apply" uconstr(trm) :=
-  pose proof H; apply trm in H.
+  let H' := fresh in pose proof H as H'; apply trm in H'.
 
 Tactic Notation "pose" hyp(H) "eapply" uconstr(trm) :=
-  pose proof H; eapply trm in H.
+  let H' := fresh in pose proof H as H'; eapply trm in H'.
 
 Ltac dup_eq :=
   clear_tauto_eq;
@@ -125,12 +125,13 @@ Ltac progressive_inversions :=
   repeat progressive_inversion.
 
 Ltac destruct_logic :=
-  destruct_one_pair || destruct_one_ex ||
-                    match goal with
-                    | [ H : ?X \/ ?Y |- _ ] => destruct H
-                    | [ ev : { _ } + { _ } |- _ ] => destruct ev
-                    | [ ev : _ + { _ } |- _ ] => destruct ev
-                    end.
+  destruct_one_pair
+  || destruct_one_ex
+  || match goal with
+    | [ H : ?X \/ ?Y |- _ ] => destruct H
+    | [ ev : { _ } + { _ } |- _ ] => destruct ev
+    | [ ev : _ + { _ } |- _ ] => destruct ev
+    end.
 
 Ltac destruct_all := repeat destruct_logic.
 
