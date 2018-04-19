@@ -81,46 +81,58 @@ Tactic Notation "inv" "typing" "undec" "1" :=
   end.
 
 
-Lemma invertible_typing_closure_tight: forall G x T U,
+Section InvertibleTyping.
+  Lemma invertible_typing_closure_tight: forall G x T U,
     inert_env G ->
     G ⊢## x ⦂ T ->
     G ⊢# T <⦂ U ->
     G ⊢## x ⦂ U.
-Proof.
-  induction on subtypt; eroutine;
-    inv typing undec 1;
-    eprove from inert at 6.
-Qed.
+  Proof.
+    induction on subtypt; eroutine;
+      inv typing undec 1;
+      eprove from inert at 6.
+  Qed.
+  Hint Resolve invertible_typing_closure_tight.
 
-Lemma tight_to_invertible : forall G (x : var) U,
-    inert_env G ->
-    G ⊢# trm_var x ⦂ U ->
-    G ⊢## x ⦂ U.
-Proof.
-  dep induction on tyt_trm; auto.
-  eapply invertible_typing_closure_tight; try eassumption.
-  eauto.
-Qed.
-  
+  Lemma tight_to_invertible : forall G (x : var) U,
+      inert_env G ->
+      G ⊢# trm_var x ⦂ U ->
+      G ⊢## x ⦂ U.
+  Proof. dep induction on tyt_trm; eauto. Qed.
 
+  Ltac boom :=
+    destruct_lbinds;
+    try match goal with
+        | [H : _ |- _ ] =>
+          guess_is_ind_hyp H;
+          eapply H; eauto;
+          solve_lbinds
+        end.
 
-(* Require Import Coq.Program.Equality. *)
+  Lemma inert_intuitive_subtyping : forall G x DS A,
+      inert_env G ->
+      G ⊢## x ⦂ μ{ DS } ->
+      forall S U,
+      lbinds (label_typ A) (dec_typ S U) DS ->
+      G ⊢# S <⦂ x ⋅ A /\ G ⊢# x ⋅ A <⦂ U.
+  Proof.
+    dep induction on ty_var_inv; intros;
+      match goal with
+      | [ _ : binds _ (μ{ ?DS }) ?G
+        , _ : inert_env ?G
+        , _ : lbinds _ _ (_ ?DS) |- _] =>
+        (* this captures the base case *)
+        eprove from inert
+      | _ => boom
+      end;
+      match goal with
+      | [H : lbinds _ _ (to_list (decs_cons _ _ decs_nil)) |- _] =>
+        cbn in H; progressive_destructions
+      end;
+    split; econstructor; try eassumption; boom.
+  Qed.
 
-(* Lemma inert_natural_obj_subtyp : *)
-(*   forall G x DS T, inert_env G -> *)
-(*               binds x (μ{ DS }) G -> *)
-(*               G ⊢# trm_var x ⦂ T -> *)
-(*               (exists DS', T = μ{ DS' }) \/ T = ⊤. *)
-(* Proof. *)
-(*   intros. gen DS H. *)
-(*   dependent induction H1; intros. *)
-(*   - left. exists DS. eapply binds_unique; routine. *)
-(*   - edestruct IHtyt_trm; try eassumption; trivial. *)
-(*     + admit. *)
-(*     + subst. right.  *)
-(*     subst. *)
-(*   auto. *)
-(*   induction on tyt_trm. *)
+End InvertibleTyping.
 
 (* Lemma general_to_tight : *)
 (*   forall G0, inert_env G0 -> *)
@@ -135,6 +147,7 @@ Qed.
 
 (*   (* we need to prove inert_env gives a good binding *) *)
 (*   specialize (H0 eq_refl). *)
+
 
 (*   invert H0; eauto. *)
 (*   subst. *)

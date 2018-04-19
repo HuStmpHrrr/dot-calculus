@@ -53,26 +53,32 @@ Tactic Notation "invert" "on" constr(trm) :=
 Tactic Notation "invert" "on" constr(trm1) constr(trm2) :=
   invert trm1; invert trm2.
 
+(** hell of a hack. we try to [eapply H] onto the goal and 
+ * if it's successful, then we consider it to be inductive hypothesis,
+ * and roll back by using [fail];
+ * otherwise, we give a higher failure level to break it through. *)
+Ltac guess_is_ind_hyp H :=
+  try (tryif eapply H then fail else fail 1).
+
 Ltac find_dup_hyp tac non :=
   match goal with
   | [ H : ?X, H' : ?X |- _ ] =>
     lazymatch type of X with
-    | Prop => 
-      tac X
+    | Prop => tac H H' X
     | _ => idtac
     end
   | _ => non
   end.
 
-Ltac fail_if_dup :=
-  find_dup_hyp ltac:(fun X => fail 1 "dup hypothesis" X) ltac:(idtac).
+Ltac fail_at_if_dup n :=
+  find_dup_hyp ltac:(fun H H' X => fail n "dup hypothesis" H "and" H' ":" X)
+                      ltac:(idtac).
 
+Ltac fail_if_dup := fail_at_if_dup ltac:(1).
 
 Ltac clear_dups :=
-  repeat find_dup_hyp ltac:(fun X =>
-                              match goal with
-                              | [ H : X |- _ ] => clear H
-                              end) ltac:(idtac).
+  repeat find_dup_hyp ltac:(fun H H' _ => clear H || clear H')
+                             ltac:(idtac).
 
 Ltac clear_tauto_eq :=
   repeat match goal with [ H : ?X = ?X |- _ ] => clear H end.
@@ -345,7 +351,7 @@ Ltac doreassoc n assoc tac :=
       | _ => fail "the list has element greater than" n
       end in
   all_at_most assoc; non_dec_list assoc; (* input sanity checking *)
-  match n with
+  lazymatch n with
   | S ?n' => 
     simpl_env;
     match goal with
@@ -353,8 +359,9 @@ Ltac doreassoc n assoc tac :=
       let colists := collect_list (l ++ ls) n' in
       let reac := reassoc_impl colists assoc in
       let applist := app_lists reac in
-      replace (l ++ ls) with applist by tac
-    | _ => fail "unable to prove association holds"
+      let expr := constr:(l ++ ls) in
+      replace expr with applist by tac
+      || fail "unable to prove association holds:" expr "=" applist
     end
   end.
 
@@ -767,6 +774,26 @@ Hint Extern 1 => match goal with
 
 (* try to deal with uniq for atoms *)
 Hint Resolve uniq_one uniq_cons uniq_app uniq_map uniq_cons_1.
+
+(* some easy stuff *)
+
+Section LAListProps.
+  Variable B : Type.
+  Variable T : Type.
+
+  Context {LIso : ListIso (label * B) T}.
+
+  Lemma binds_witness : forall a (b : B) l1 l2,
+      lbinds a b (to_list $ append l1 $ from_list $ (a, b) :: l2).
+  Proof.
+    intros. rewrite append_sound.
+    remember (to_list l1) as L. generalize L.
+    induction on list; simpl.
+    - rewrite to_from_iso. auto.
+    - right. trivial.
+  Qed.
+
+End LAListProps.
 
 (* strange that this general law is not provided from the library *)
 Lemma Forall_concat : forall A (l l' : list A) P,

@@ -591,3 +591,40 @@ Ltac list_reasoning :=
     | [H : context[to_list] |- _ ] =>
       rewrite append_sound in H
     end.
+
+Ltac destruct_lbinds :=
+  let rec des pred :=
+      match goal with
+      | [H : lbinds _ _ (_ ++ _) |- _] =>
+        pred H;
+        let H' := fresh in
+        pose proof H as H';
+        apply LabelAssocList.binds_app_1 in H';
+        destruct H';
+        des ltac:(fun name => different H name; pred name)
+      | _ => idtac
+      end in
+    list_reasoning; des ltac:(fun _ => idtac).
+
+Ltac solve_lbinds' :=
+  try (eassumption || left; reflexivity);
+  match goal with
+  | [H : lbinds ?x _ ?l |- lbinds ?x _ (?A ++ ?B)] =>
+    lazymatch A with
+    | context[l] =>
+      apply lbinds_app_l; solve_lbinds'
+    end
+    || lazymatch B with
+      | context[l] =>
+        apply lbinds_app_r; solve_lbinds'
+      end
+  | [|- lbinds ?x _ (?A ++ ?B)] =>
+    lazymatch A with
+    | context[x] => apply lbinds_app_l; solve_lbinds'
+    end
+    || lazymatch B with
+      | context[x] => apply lbinds_app_r; solve_lbinds'
+      end
+  end.
+
+Ltac solve_lbinds := list_reasoning; solve_lbinds'.
